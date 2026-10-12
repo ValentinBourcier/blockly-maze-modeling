@@ -414,7 +414,21 @@
         } catch (e) {}
     }
 
+    function stopActiveMomotSearch() {
+        try {
+            window.__momotIsRunning = false;
+            var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
+            if (bridge && typeof bridge.stopMomotRun === 'function') {
+                return bridge.stopMomotRun();
+            }
+        } catch (e) {
+            console.error('[levelTimer] Failed to stop MoMoT search:', e);
+        }
+        return null;
+    }
+
     function confirmNextTask() {
+        stopActiveMomotSearch();
         injectStyles();
         var modal = document.getElementById('levelTimerConfirmModal');
         if (!modal && document.body) {
@@ -457,10 +471,31 @@
     function goToNextTask() {
         saveSessionData();
         sendLevelTime(true);
+        var pStop = stopActiveMomotSearch();
         var nextLevel = level + 1;
         setStoredLevel(nextLevel);
         var targetUrl = buildLevelUrl(nextLevel);
-        navigateTo(targetUrl);
+
+        var navigated = false;
+        var doNav = function() {
+            if (!navigated) {
+                navigated = true;
+                navigateTo(targetUrl);
+            }
+        };
+
+        if (pStop && typeof pStop.then === 'function') {
+            var navTimer = setTimeout(doNav, 300);
+            pStop.then(function() {
+                clearTimeout(navTimer);
+                doNav();
+            }).catch(function() {
+                clearTimeout(navTimer);
+                doNav();
+            });
+        } else {
+            doNav();
+        }
     }
 
     function injectStyles() {
@@ -744,6 +779,7 @@
     }
 
     function promptUserForSession() {
+        stopActiveMomotSearch();
         injectStyles();
         var modal = document.getElementById('levelTimerModal');
         if (!modal && document.body) {
@@ -816,6 +852,7 @@
     }
 
     function showSessionReport() {
+        stopActiveMomotSearch();
         sendLevelTime(false);
         var data = getAllLevelTimes();
         var levelsData = data.levels;

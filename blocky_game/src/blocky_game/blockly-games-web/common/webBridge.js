@@ -123,9 +123,12 @@
 
                 if (isSameLevel && data.maxBlocks !== undefined) window.Od = data.maxBlocks;
 
-                if (typeof data.momotRunning === 'boolean') {
+                if (isSameLevel && typeof data.momotRunning === 'boolean') {
                     momotIsRunning = data.momotRunning;
                     window.__momotIsRunning = data.momotRunning;
+                } else if (!isSameLevel) {
+                    momotIsRunning = false;
+                    window.__momotIsRunning = false;
                 }
                 window.__injectNewPath = data.newPath || [];
                 window.__injectPastPath = data.pastPath || [];
@@ -1094,7 +1097,8 @@
                     }
                     fetch(apiBase + '/api/momot/stop', {
                         method: 'POST',
-                        headers: { 'X-Session-ID': sid }
+                        headers: { 'X-Session-ID': sid },
+                        keepalive: true
                     }).then(function(r) {
                         return r.json ? r.json() : r;
                     }).then(resolve).catch(function(e) {

@@ -253,6 +253,28 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         assert.ok(navigatedUrl && navigatedUrl.includes('level=4'), 'Confirming Next task must navigate to level 4');
     });
 
+    it('stops active MoMoT search when Next task button is clicked', () => {
+        let stopCalls = 0;
+        window.javaBridge = {
+            stopMomotRun: () => {
+                stopCalls++;
+                window.__momotIsRunning = false;
+                return Promise.resolve();
+            }
+        };
+        window.__momotIsRunning = true;
+
+        const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
+        window.eval(timerScript);
+
+        const nextBtn = window.document.getElementById('timerNextTaskBtn');
+        assert.ok(nextBtn);
+        nextBtn.click();
+
+        assert.ok(stopCalls >= 1, 'stopMomotRun should be called when Next task button is clicked');
+        assert.strictEqual(window.__momotIsRunning, false, 'window.__momotIsRunning should be cleared to false');
+    });
+
     it('closes dialog and does not navigate when Stay is clicked', () => {
         let navigatedUrl = null;
         window.__levelTimerNavigate = (url) => { navigatedUrl = url; };
