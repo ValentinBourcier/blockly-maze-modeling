@@ -799,6 +799,15 @@
             eventsHtml += '    <span>' + escapeHtml(ev.timestamp || '-') + '</span>';
             if (ev.modelName) eventsHtml += '    <span><strong>Model:</strong> ' + escapeHtml(ev.modelName) + '</span>';
             if (ev.objectiveLine) eventsHtml += '    <span><strong>Obj:</strong> ' + escapeHtml(ev.objectiveLine) + '</span>';
+            if (typeof ev.iterationMs === 'number') {
+              eventsHtml += '    <span><strong>Iteration (active):</strong> ' + (ev.iterationMs / 1000).toFixed(1) + ' s</span>';
+            }
+            if (typeof ev.generation === 'number') {
+              eventsHtml += '    <span><strong>Generation:</strong> ' + ev.generation + '</span>';
+            }
+            if (typeof ev.wallIterationMs === 'number') {
+              eventsHtml += '    <span><strong>Iteration (wall-clock):</strong> ' + (ev.wallIterationMs / 1000).toFixed(1) + ' s</span>';
+            }
             eventsHtml += '  </div>';
             if (ev.xml && ev.xml.trim()) {
               eventsHtml += '  <div class="block-preview" data-xml="' + escapeHtml(ev.xml) + '"></div>';

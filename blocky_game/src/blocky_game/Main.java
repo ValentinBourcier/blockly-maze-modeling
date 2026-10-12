@@ -28,7 +28,7 @@ public class Main {
         }
         // Gated objectives (blocky_custom) and the edit-anywhere + wrap rules (defaultHenshinModule) are the defaults;
         // -Dblocky.objectives=CURRENT, -Dblocky.rules.wrap=false and -Dblocky.rules.editAnywhere=false turn them off.
-        if (System.getProperty("blocky.henshin") == null) {
+        if (System.getProperty("blocky.henshin") == null && !Boolean.getBoolean("blocky.levelLimits") && !Boolean.getBoolean("blocky.rules.levelSpecific")) {
             String defaultModule = MomotFirstGoalBenchmarkRunner.defaultHenshinModule();
             String henshinPath = MomotRunService.firstExisting(
                     "blocky_model/transformations/" + defaultModule,

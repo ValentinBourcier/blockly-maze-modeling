@@ -267,7 +267,7 @@ public class SessionContext {
         if (System.getProperty("blocky.nonGoalArchive") == null) {
             System.setProperty("blocky.nonGoalArchive", "10");
         }
-        if (System.getProperty("blocky.henshin") == null) {
+        if (System.getProperty("blocky.henshin") == null || Boolean.getBoolean("blocky.levelLimits") || Boolean.getBoolean("blocky.rules.levelSpecific")) {
             String defaultModule = MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(levelId);
             String henshinPath = MomotRunService.firstExisting(
                     "blocky_model/transformations/" + defaultModule,

@@ -453,7 +453,7 @@ public final class BlockySimulator {
         state.setOrientation(startDir);
         state.setStatus(GameStatus.RUNNING);
 
-        ExecResult r = executeBodyLiteWithMinDistance(solution, state, level, winCellType, distanceField);
+        ExecResult r = executeBodyLiteWithMinDistance(solution, state, level, winCellType, distanceField, Integer.MAX_VALUE);
         if (r == null) {
             return penalty;
         }
@@ -510,9 +510,10 @@ public final class BlockySimulator {
             GameState state,
             Level level,
             CellType winCellType,
-            Map<Cell, Integer> distanceField) {
-        if (body == null) return new ExecResult(state, minDistanceAt(state, distanceField, Integer.MAX_VALUE));
-        return executeContainerChainLiteWithMinDistance(body.getFirstContainer(), state, level, winCellType, distanceField, Integer.MAX_VALUE);
+            Map<Cell, Integer> distanceField,
+            int currentMin) {
+        if (body == null) return new ExecResult(state, minDistanceAt(state, distanceField, currentMin));
+        return executeContainerChainLiteWithMinDistance(body.getFirstContainer(), state, level, winCellType, distanceField, currentMin);
     }
 
     private static ExecResult executeContainerChainLiteWithMinDistance(
@@ -563,7 +564,7 @@ public final class BlockySimulator {
                     break;
                 }
                 int previousStep = loop.getStep();
-                ExecResult inner = executeBodyLiteWithMinDistance(r.getBody(), loop, level, winCellType, distanceField);
+                ExecResult inner = executeBodyLiteWithMinDistance(r.getBody(), loop, level, winCellType, distanceField, loopMin);
                 loop = inner.last;
                 loopMin = inner.minDistance;
                 if (loop.getStep() == previousStep) {
@@ -579,7 +580,7 @@ public final class BlockySimulator {
             boolean cond = checkCondition(next, i.getCondition());
             Body branch = cond ? i.getThenBody() : i.getElseBody();
             if (branch != null) {
-                ExecResult inner = executeBodyLiteWithMinDistance(branch, next, level, winCellType, distanceField);
+                ExecResult inner = executeBodyLiteWithMinDistance(branch, next, level, winCellType, distanceField, min);
                 return new ExecResult(inner.last, inner.minDistance);
             }
         }

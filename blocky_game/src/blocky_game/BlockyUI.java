@@ -147,7 +147,11 @@ public class BlockyUI extends Application {
             if (engine.getCurrentLevel() != null && engine.getCurrentLevel().getId() >= 1 && engine.getCurrentLevel().getId() <= 10) {
                 initialLevel = engine.getCurrentLevel().getId();
             }
-            webEngine.load(getMazeBaseUrl() + "?lang=en&level=" + initialLevel);
+            String mazeUrl = getMazeBaseUrl() + "?lang=en&level=" + initialLevel;
+            if (Boolean.getBoolean("blocky.levelLimits")) {
+                mazeUrl += "&levelLimits=true";
+            }
+            webEngine.load(mazeUrl);
 
             // Setup the bridge
             webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
@@ -156,6 +160,11 @@ public class BlockyUI extends Application {
                     jsBridge = new JSBridge();
                     JSObject window = (JSObject) webEngine.executeScript("window");
                     window.setMember("javaBridge", jsBridge);
+                    if (Boolean.getBoolean("blocky.levelLimits")) {
+                        try {
+                            webEngine.executeScript("window.__blockyLevelLimits = true;");
+                        } catch (Exception ignored) {}
+                    }
                     try {
                         // Generation guard for fast level switching: stale JS must not call into a new engine state.
                         currentPageGen = pageGen.incrementAndGet();
@@ -1417,6 +1426,14 @@ public class BlockyUI extends Application {
                 + "            if (window.__dbgTimer) { clearInterval(window.__dbgTimer); window.__dbgTimer = null; } "
                 + "          } catch(e) {} "
                 + "        }); "
+                + "        function momotSearchActive() { "
+                + "          try { "
+                + "            var bridge = window.javaBridge || (window.parent && window.parent.javaBridge); "
+                + "            if (bridge && typeof bridge.isMomotRunning === 'function') return bridge.isMomotRunning(); "
+                + "            return window.__momotIsRunning === true || (typeof progTimer !== 'undefined' && !!progTimer); "
+                + "          } catch(e) { return false; } "
+                + "        } "
+                + "        window.__momotSearchActive = momotSearchActive; "
                 + "        window.__dmActive = false; "
                 + "        function __dmCanEnable() { "
                 + "          try { "
@@ -1444,7 +1461,15 @@ public class BlockyUI extends Application {
                 + "        } "
                 + "        function __dmStart() { "
                 + "          try { "
-                + "            if (!__dmCanEnable()) { __dmStop(); return; } "
+                + "            if (!__dmCanEnable()) { "
+                + "              __dmStop(); "
+                + "              try { "
+                + "                if (typeof window.__momotSearchActive === 'function' && window.__momotSearchActive() && window.__momotSetStatus) { "
+                + "                  window.__momotSetStatus('A search is running. Press Stop before placing a new marker.'); "
+                + "                } "
+                + "              } catch(eM) {} "
+                + "              return; "
+                + "            } "
                 + "            var svg = document.getElementById('svgMaze'); "
                 + "            if (!svg) return; "
                 + "            window.__dmActive = true; __dmUpdateButton(); "
@@ -1792,6 +1817,10 @@ public class BlockyUI extends Application {
             }
         }
 
+        public boolean isLevelLimits() {
+            return Boolean.getBoolean("blocky.levelLimits");
+        }
+
         // --- Debugger controls (Java-driven stepping) ---
 
         /**
@@ -2025,20 +2054,19 @@ public class BlockyUI extends Application {
         System.setProperty("blocky.nrRuns", String.valueOf(nrRuns));
         System.setProperty("blocky.solutionLength", String.valueOf(solutionLength));
 
-        // Use full Henshin rule set for all levels
-        // PROTOTYPE: *_edit_anywhere.henshin = original rules + modify/delete of user-placed blocks, exposed as one
-        // combined search move EditAnywhere (tools/henshin-prototype)
-        String henshin = "statement_insertions_henshin_text_edit_anywhere.henshin";
+        // Rule module: per-level if levelLimits/levelSpecific is requested, otherwise full module
         Level lvl = engine.getCurrentLevel();
+        int currentLevelId = lvl != null ? lvl.getId() : 1;
+        String henshin = (Boolean.getBoolean("blocky.levelLimits") || Boolean.getBoolean("blocky.rules.levelSpecific"))
+                ? MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(currentLevelId)
+                : MomotFirstGoalBenchmarkRunner.withWrapMoves("statement_insertions_henshin_text_edit_anywhere.henshin");
         if (lvl != null) {
             boolean ifElse = lvl.isAllowIfElse();
             System.setProperty("blocky.allowIfElse", String.valueOf(ifElse));
         } else {
             System.setProperty("blocky.allowIfElse", "true");
         }
-        // The *_wrap.henshin variant (adds wrap/unwrap moves) is the default; -Dblocky.rules.wrap=false turns it off
-        henshin = MomotFirstGoalBenchmarkRunner.withWrapMoves(henshin);
-        System.setProperty("blocky.henshin", "../blocky_model/transformations/" + henshin);
+        System.setProperty("blocky.henshin", henshin.contains("/") ? henshin : "../blocky_model/transformations/" + henshin);
 
         MomotRunService.RunSpec baseSpec = MomotRunService.defaultDirectManipulationSpec();
         MomotRunService.RunSpec spec = new MomotRunService.RunSpec(

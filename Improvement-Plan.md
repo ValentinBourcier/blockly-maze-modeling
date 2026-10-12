@@ -519,7 +519,7 @@ Stop alone does not change the id, so the finish callback of a stopped run still
 - `run_first_goal_benchmark.sh`: defaults changed to `GATED` and `true`. **A benchmark run without variables now measures the shipped configuration, not the old baseline.** For the old baselines of `Benchmark-Analysis.md`, set `BLOCKY_OBJECTIVES=CURRENT BLOCKY_WRAP=false` and `-Dblocky.rules.editAnywhere=false`.
 - `AGENTS.md`: the property table is updated.
 
-**What it does not change.** `Main.java` still pins one `blocky.henshin` for every level, so `blocky.rules.levelSpecific` has no effect in the game and level 2 gets the full module (open decision).
+**What it does not change.** `blocky.levelLimits=true` (or `blocky.rules.levelSpecific=true`) restores the original per-level toolbox and rule module (atomic_only for 1–2, no_conds for 3–5, no_else for 6–7); by default `Main.java`, `SessionContext`, and `BlockyUI` use the full module with wrap and all blocks across levels.
 
 **How to check it works.** `mvn -q -o -pl blocky_game -am compile` passes. In the container log, the module is `statement_insertions_henshin_text_edit_anywhere_wrap.henshin` and the objective list is `[GoalReached, Edits, Actions, closestToGoal, Blocks]`, with no `BLOCKY_*` variable set. Not run yet.
 

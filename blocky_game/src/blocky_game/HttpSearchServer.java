@@ -648,16 +648,16 @@ public class HttpSearchServer {
                         if (modelPath != null && (modelPath.equals(e.modelPath) || (e.modelPath != null && modelName.equals(new File(e.modelPath).getName())))) {
                             if (e.objectiveLine != null) {
                                 objectiveLine = e.objectiveLine;
-                                // generation in which the objective vector of this candidate first appeared (generations.pf)
-                                generation = e.generationToForm;
-                                if (e.outputDir != null) {
-                                    File outDir = new File(e.outputDir);
-                                    // <session>/run_<timestamp>_<n>/output: the search is the run_... folder
-                                    searchId = "output".equals(outDir.getName()) && outDir.getParentFile() != null
-                                            ? outDir.getParentFile().getName() : outDir.getName();
-                                }
-                                break;
                             }
+                            // generation in which the objective vector of this candidate first appeared (generations.pf)
+                            generation = e.generationToForm;
+                            if (e.outputDir != null) {
+                                File outDir = new File(e.outputDir);
+                                // <session>/run_<timestamp>_<n>/output: the search is the run_... folder
+                                searchId = "output".equals(outDir.getName()) && outDir.getParentFile() != null
+                                        ? outDir.getParentFile().getName() : outDir.getName();
+                            }
+                            break;
                         }
                     }
                     if (objectiveLine.isEmpty()) {
@@ -1523,12 +1523,14 @@ public class HttpSearchServer {
     }
 
     private static long meanOf(List<Long> values) {
+        if (values == null || values.isEmpty()) return 0L;
         long sum = 0;
         for (long v : values) sum += v;
         return Math.round((double) sum / values.size());
     }
 
     private static long medianOf(List<Long> values) {
+        if (values == null || values.isEmpty()) return 0L;
         List<Long> sorted = new ArrayList<>(values);
         Collections.sort(sorted);
         int n = sorted.size();
@@ -2190,7 +2192,14 @@ public class HttpSearchServer {
             exchange.getResponseHeaders().add("Content-Type", contentType);
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
 
-            byte[] fileBytes = Files.readAllBytes(requestedFile.toPath());
+            byte[] fileBytes;
+            if (Boolean.getBoolean("blocky.levelLimits") && requestedFile.getName().equalsIgnoreCase("maze.html")) {
+                String html = Files.readString(requestedFile.toPath(), StandardCharsets.UTF_8);
+                html = html.replace("<head>", "<head>\n  <script>window.__blockyLevelLimits = true;</script>");
+                fileBytes = html.getBytes(StandardCharsets.UTF_8);
+            } else {
+                fileBytes = Files.readAllBytes(requestedFile.toPath());
+            }
             exchange.sendResponseHeaders(200, fileBytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(fileBytes);

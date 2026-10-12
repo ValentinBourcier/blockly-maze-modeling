@@ -11,6 +11,9 @@ fi
 if [ -n "$BLOCKY_WRAP" ]; then
     export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Dblocky.rules.wrap=$BLOCKY_WRAP"
 fi
+if [ -n "$BLOCKY_LEVEL_LIMITS" ]; then
+    export JAVA_TOOL_OPTIONS="$JAVA_TOOL_OPTIONS -Dblocky.levelLimits=$BLOCKY_LEVEL_LIMITS"
+fi
 export MAVEN_OPTS="$JAVA_TOOL_OPTIONS"
 
 # Always start virtual Xvfb display so JavaFX components run headlessly without DISPLAY errors

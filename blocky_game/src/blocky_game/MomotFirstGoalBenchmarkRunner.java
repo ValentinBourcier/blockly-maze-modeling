@@ -404,7 +404,7 @@ public final class MomotFirstGoalBenchmarkRunner {
     }
 
     public static String selectHenshinModuleForLevel(int level) {
-        if (Boolean.getBoolean("blocky.rules.levelSpecific")) {
+        if (Boolean.getBoolean("blocky.rules.levelSpecific") || Boolean.getBoolean("blocky.levelLimits")) {
             if (level <= 2) {
                 return "statement_insertions_atomic_only_edit_anywhere.henshin";
             } else if (level <= 5) {

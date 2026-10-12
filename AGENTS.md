@@ -44,6 +44,7 @@ This repository contains **Blocky Maze**, a Java/JavaFX application integrating 
 | `blocky.objectives` | `GATED` (default), `CURRENT` | `CURRENT` turns the gate off (original objectives) |
 | `blocky.rules.wrap` | `true` (default), `false` | `false` turns the `*_wrap` rule variants (wrap/unwrap) off |
 | `blocky.rules.editAnywhere` | `true` (default), `false` | `false` turns the `*_edit_anywhere` variant (insert, delete, modify) off for base module names |
+| `blocky.levelLimits` | `false` (default), `true` | `true` restores original per-level toolbox and rule module |
 | `blocky.algorithm` | `NSGA_II` (default), `MEMETIC_NSGA_II`; benchmarks: `RANDOM_SEARCH`, `IMMIGRANTS_NSGA_II` | search algorithm |
 | `blocky.nonGoalArchive` | integer, `0` in code, `10` set by `Main.java` | number of non-goal candidates kept for the solution panel (0 = off) |
 

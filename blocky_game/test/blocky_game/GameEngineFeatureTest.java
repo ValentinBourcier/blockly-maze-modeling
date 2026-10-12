@@ -136,4 +136,73 @@ class GameEngineFeatureTest {
         assertNotNull(res.trace);
         assertFalse(res.trace.getStates().isEmpty());
     }
+
+    @Test
+    void testLevelLimitsModuleSelection() {
+        String prev = System.getProperty("blocky.levelLimits");
+        try {
+            System.clearProperty("blocky.levelLimits");
+            String defaultModule = MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(1);
+            assertTrue(defaultModule.contains("statement_insertions_henshin_text"));
+
+            System.setProperty("blocky.levelLimits", "true");
+            String l1 = MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(1);
+            assertTrue(l1.contains("atomic_only"));
+
+            String l4 = MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(4);
+            assertTrue(l4.contains("no_conds"));
+
+            String l6 = MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(6);
+            assertTrue(l6.contains("no_else"));
+
+            String l8 = MomotFirstGoalBenchmarkRunner.selectHenshinModuleForLevel(8);
+            assertTrue(l8.contains("statement_insertions_henshin_text"));
+        } finally {
+            if (prev != null) System.setProperty("blocky.levelLimits", prev);
+            else System.clearProperty("blocky.levelLimits");
+        }
+    }
+
+    @Test
+    void testSimulatorDistanceTrackingWithLoop() {
+        Level level = BlockyFactory.eINSTANCE.createLevel();
+        GridMap map = BlockyFactory.eINSTANCE.createGridMap();
+        map.setWidth(5);
+        map.setHeight(1);
+        level.setMap(map);
+
+        Cell c0 = BlockyFactory.eINSTANCE.createCell();
+        c0.setX(0); c0.setY(0); c0.setType(CellType.START);
+
+        Cell c1 = BlockyFactory.eINSTANCE.createCell();
+        c1.setX(1); c1.setY(0); c1.setType(CellType.EMPTY);
+
+        Cell c2 = BlockyFactory.eINSTANCE.createCell();
+        c2.setX(2); c2.setY(0); c2.setType(CellType.GOAL);
+
+        c0.setRight(c1); c1.setLeft(c0);
+        c1.setRight(c2); c2.setLeft(c1);
+        map.getCells().add(c0);
+        map.getCells().add(c1);
+        map.getCells().add(c2);
+
+        // Loop that moves forward
+        Body solution = BlockyFactory.eINSTANCE.createBody();
+        level.setSolution(solution);
+        Container cont = BlockyFactory.eINSTANCE.createContainer();
+        Loop loop = BlockyFactory.eINSTANCE.createLoop();
+        cont.setStatement(loop);
+        solution.setFirstContainer(cont);
+
+        Body loopBody = BlockyFactory.eINSTANCE.createBody();
+        loop.setBody(loopBody);
+        Container loopCont = BlockyFactory.eINSTANCE.createContainer();
+        AtomicStatement move = BlockyFactory.eINSTANCE.createAtomicStatement();
+        move.setKind(AtomicStatementKind.MOVE_FORWARD);
+        loopCont.setStatement(move);
+        loopBody.setFirstContainer(loopCont);
+
+        int dist = blocky_momot.BlockySimulator.distanceToGoalOrPenalty(level, 100000);
+        assertEquals(0, dist);
+    }
 }
