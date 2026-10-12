@@ -1232,6 +1232,29 @@
             });
         },
 
+        clearDirectManipulation: function() {
+            var oldMarker = document.getElementById('dmgMarker');
+            if (oldMarker && oldMarker.parentNode) oldMarker.parentNode.removeChild(oldMarker);
+            return new Promise(function(resolve, reject) {
+                getSessionId(function(sid) {
+                    if (!sid) {
+                        resolve(null);
+                        return;
+                    }
+                    fetch(apiBase + '/api/dm/clear', {
+                        method: 'POST',
+                        headers: attachTimerHeaders({ 'Content-Type': 'application/json', 'X-Session-ID': sid }),
+                        body: '{}'
+                    }).then(function(res) {
+                        if (res && typeof res.ok === 'boolean' && !res.ok) {
+                            throw new Error('HTTP ' + res.status);
+                        }
+                        return res.json ? res.json() : res;
+                    }).then(resolve).catch(resolve);
+                });
+            });
+        },
+
         debugStart: function(q, s, t) {
             localDbg.startX = getStartX(q);
             localDbg.startY = getStartY(s);

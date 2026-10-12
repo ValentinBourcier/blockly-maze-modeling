@@ -84,6 +84,7 @@ public class HttpSearchServer {
         server.createContext("/api/debug/tick", new DebugTickHandler());
 
         server.createContext("/api/dm/request", new DirectManipulationHandler());
+        server.createContext("/api/dm/clear", new DirectManipulationClearHandler());
         server.createContext("/api/simulation/run", new SimulationRunHandler());
         server.createContext("/api/level-time", new LevelTimeHandler());
 
@@ -294,9 +295,8 @@ public class HttpSearchServer {
 
             int startX = startCell != null ? startCell.getX() : 0;
             int startY = startCell != null ? startCell.getY() : 0;
-            Cell targetGoal = dmgCell != null ? dmgCell : goalCell;
-            int goalX = targetGoal != null ? targetGoal.getX() : 0;
-            int goalY = targetGoal != null ? targetGoal.getY() : 0;
+            int goalX = goalCell != null ? goalCell.getX() : 0;
+            int goalY = goalCell != null ? goalCell.getY() : 0;
 
             StringBuilder gridSb = new StringBuilder("[");
             for (int r = 0; r < grid.length; r++) {
@@ -336,6 +336,9 @@ public class HttpSearchServer {
             sb.append("\"startPos\":{\"x\":").append(startX).append(",\"y\":").append(startY).append("},");
             sb.append("\"startDirection\":").append(startT).append(",");
             sb.append("\"goalPos\":{\"x\":").append(goalX).append(",\"y\":").append(goalY).append("},");
+            if (dmgCell != null) {
+                sb.append("\"dmgPos\":{\"x\":").append(dmgCell.getX()).append(",\"y\":").append(dmgCell.getY()).append("},");
+            }
             sb.append("\"maxBlocks\":").append(level != null ? level.getMaxBlocks() : -1).append(",");
             sb.append("\"momotRunning\":").append(session.isMomotRunning()).append(",");
             sb.append("\"momotStatus\":\"").append(escapeJson(session.getMomotStatus())).append("\",");
@@ -684,9 +687,8 @@ public class HttpSearchServer {
 
             int startX = startCell != null ? startCell.getX() : 0;
             int startY = startCell != null ? startCell.getY() : 0;
-            Cell targetGoal = dmgCell != null ? dmgCell : goalCell;
-            int goalX = targetGoal != null ? targetGoal.getX() : 0;
-            int goalY = targetGoal != null ? targetGoal.getY() : 0;
+            int goalX = goalCell != null ? goalCell.getX() : 0;
+            int goalY = goalCell != null ? goalCell.getY() : 0;
 
             StringBuilder gridSb = new StringBuilder("[");
             for (int r = 0; r < grid.length; r++) {
@@ -713,6 +715,9 @@ public class HttpSearchServer {
             sb.append("\"grid\":").append(gridSb.toString()).append(",");
             sb.append("\"startPos\":{\"x\":").append(startX).append(",\"y\":").append(startY).append("},");
             sb.append("\"goalPos\":{\"x\":").append(goalX).append(",\"y\":").append(goalY).append("},");
+            if (dmgCell != null) {
+                sb.append("\"dmgPos\":{\"x\":").append(dmgCell.getX()).append(",\"y\":").append(dmgCell.getY()).append("},");
+            }
             sb.append("\"startDirection\":").append(startT);
             sb.append("}");
 
@@ -834,6 +839,20 @@ public class HttpSearchServer {
             int levelId = extractLevelId(exchange, body, session);
             recordActivity(timerSid, levelId, ActivityType.DIRECT_MANIPULATION);
 
+            sendJson(exchange, 200, "{\"status\":\"ok\"}");
+        }
+    }
+
+    private static class DirectManipulationClearHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                sendCorsAndNoContent(exchange);
+                return;
+            }
+            String body = readRequestBody(exchange);
+            SessionContext session = getSession(exchange, body);
+            session.getEngine().clearDirectManipulationGoal();
             sendJson(exchange, 200, "{\"status\":\"ok\"}");
         }
     }

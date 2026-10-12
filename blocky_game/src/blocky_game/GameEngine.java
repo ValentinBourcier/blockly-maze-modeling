@@ -94,7 +94,7 @@ public class GameEngine {
         }
     }
 
-    private void clearDirectManipulationGoal() {
+    public void clearDirectManipulationGoal() {
         if (currentLevel == null || currentLevel.getMap() == null) return;
         for (Cell c : currentLevel.getMap().getCells()) {
             if (c != null && c.getType() == CellType.DMG) {
@@ -306,38 +306,22 @@ public class GameEngine {
         int height = rowStrs.length;
         int width = rowStrs[0].split(",").length;
 
+        if (currentLevel == null) {
+            currentLevel = BlockyFactory.eINSTANCE.createLevel();
+            if (currentGame == null) {
+                currentGame = BlockyFactory.eINSTANCE.createGame();
+            }
+            currentGame.getLevels().add(currentLevel);
+        }
+
         // Clear execution traces: they reference Cell instances from the previous map, which would become dangling after we replace the map and cause DanglingHREFException on save.
         currentLevel.getTraces().clear();
 
         // Clear any previously-synced start orientation so syncLevelMeta will set it fresh.
         currentLevel.eUnset(BlockyPackage.Literals.LEVEL__START_ORIENTATION);
 
-        // Preserve markers that the WebView doesn't know about or swaps during DM.
-        // We only do this if we were already in DM mode (indicated by an existing DMG cell).
+        // Preserve DMG marker across sync if still on the same level.
         Cell oldDmg = getDmgCell(currentLevel.getMap());
-        Cell oldGoal = (oldDmg != null) ? getGoalCell(currentLevel.getMap()) : null;
-
-        // Detection of level switch: if the incoming map has a goal (value 3) at a position 
-        // that doesn't match our current DMG, it's likely a level switch. 
-        // In that case, discard DM state.
-        if (oldDmg != null) {
-            int newGoalX = -1, newGoalY = -1;
-            String[] rows = mapJson.split("\\],\\[");
-            for (int r = 0; r < rows.length; r++) {
-                String[] cols = rows[r].split(",");
-                for (int c = 0; cols != null && c < cols.length; c++) {
-                    if ("3".equals(cols[c].trim())) {
-                        newGoalX = c; newGoalY = r; break;
-                    }
-                }
-                if (newGoalX != -1) break;
-            }
-            if (newGoalX != -1 && (newGoalX != oldDmg.getX() || newGoalY != oldDmg.getY())) {
-                System.out.println("[GameEngine] Level switch detected via map goal position. Resetting DM state.");
-                oldDmg = null;
-                oldGoal = null;
-            }
-        }
 
         GridMap map = BlockyFactory.eINSTANCE.createGridMap();
         map.setWidth(width);
@@ -349,7 +333,7 @@ public class GameEngine {
         for (int y = 0; y < height; y++) {
             String[] colStrs = rowStrs[y].split(",");
             for (int x = 0; x < width; x++) {
-                int val = Integer.parseInt(colStrs[x]);
+                int val = Integer.parseInt(colStrs[x].trim());
                 Cell cell = BlockyFactory.eINSTANCE.createCell();
                 cell.setX(x);
                 cell.setY(y);
@@ -365,10 +349,7 @@ public class GameEngine {
                         cell.setType(CellType.START);
                         break;
                     case 3:
-                        // Value 3 is GOAL in WebView. 
-                        // If we are restoring from a custom model (oldGoal != null), 
-                        // we treat all incoming goals as EMPTY first, then restore the correct one later.
-                        cell.setType(oldGoal != null ? CellType.EMPTY : CellType.GOAL);
+                        cell.setType(CellType.GOAL);
                         break;
                 }
 
@@ -377,19 +358,11 @@ public class GameEngine {
             }
         }
 
-        // Restore DMG and original GOAL markers if they were swapped for the WebView.
+        // Restore DMG marker on an EMPTY cell if oldDmg was within bounds
         if (oldDmg != null) {
             Cell newDmgCell = findCellByXY(oldDmg.getX(), oldDmg.getY());
-            // In DM mode, the WebView sees DMG as value 3 (GOAL).
-            if (newDmgCell != null && newDmgCell.getType() == CellType.GOAL) {
+            if (newDmgCell != null && newDmgCell.getType() == CellType.EMPTY) {
                 newDmgCell.setType(CellType.DMG);
-            }
-        }
-        if (oldGoal != null) {
-            Cell newGoalCell = findCellByXY(oldGoal.getX(), oldGoal.getY());
-            // In DM mode, the WebView sees the original GOAL as value 1 (EMPTY).
-            if (newGoalCell != null && newGoalCell.getType() == CellType.EMPTY) {
-                newGoalCell.setType(CellType.GOAL);
             }
         }
 
@@ -1931,15 +1904,8 @@ public class GameEngine {
                     case WALL:  grid[y][x] = 0; break;
                     case EMPTY: grid[y][x] = 1; break;
                     case START: grid[y][x] = 2; break;
-                    case GOAL:
-                        // If a DMG marker exists, the real goal behaves as an empty cell for the WebView's game engine,
-                        // as Maze only supports a single goal (which we prioritize as DMG).
-                        grid[y][x] = hasDmg ? 1 : 3;
-                        break;
-                    case DMG:
-                        // DMG marker always behaves as the goal if present.
-                        grid[y][x] = 3;
-                        break;
+                    case GOAL:  grid[y][x] = 3; break;
+                    case DMG:   grid[y][x] = 1; break; // DMG is a walkable path tile in the webview
                     default:    grid[y][x] = 1; break;
                 }
             }

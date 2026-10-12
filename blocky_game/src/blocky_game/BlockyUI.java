@@ -968,6 +968,10 @@ public class BlockyUI extends Application {
                 + "            var oldMarker = document.getElementById('dmgMarker'); "
                 + "            if (oldMarker && oldMarker.parentNode) oldMarker.parentNode.removeChild(oldMarker); "
                 + "          } catch(eM) {} "
+                + "          try { "
+                + "            var bridge = window.javaBridge || (window.parent && window.parent.javaBridge); "
+                + "            if (bridge && typeof bridge.clearDirectManipulation === 'function') bridge.clearDirectManipulation(); "
+                + "          } catch(eB) {} "
                 + "        }); "
                 + "        mStopBtn.addEventListener('click', function(){ "
                 + "          try { "
@@ -1508,17 +1512,28 @@ public class BlockyUI extends Application {
                 + "                  } catch(eP) {} "
                 + "                  function onPlacementDone() { "
                 + "                    try { "
-                + "                      if (grid && Array.isArray(grid)) { "
-                + "                        for (var r = 0; r < grid.length; r++) { "
-                + "                          if (Array.isArray(grid[r])) { "
-                + "                            for (var c = 0; c < grid[r].length; c++) { "
-                + "                              if (grid[r][c] === 3) grid[r][c] = 1; "
-                + "                            } "
-                + "                          } "
+                + "                      var goalObj = (typeof window.od === 'object' && window.od) ? window.od : null; "
+                + "                      var isGoal = goalObj && goalObj.x === col && goalObj.y === row; "
+                + "                      var oldMarker = document.getElementById('dmgMarker'); "
+                + "                      if (oldMarker && oldMarker.parentNode) oldMarker.parentNode.removeChild(oldMarker); "
+                + "                      if (!isGoal) { "
+                + "                        var svg = document.getElementById('svgMaze'); "
+                + "                        if (svg) { "
+                + "                          var ns = 'http://www.w3.org/2000/svg'; "
+                + "                          var g = document.createElementNS(ns, 'g'); "
+                + "                          g.setAttribute('id', 'dmgMarker'); "
+                + "                          g.setAttribute('transform', 'translate(' + (50 * col + 25) + ',' + (50 * row + 25) + ')'); "
+                + "                          var star = document.createElementNS(ns, 'path'); "
+                + "                          star.setAttribute('d', 'M 0,-15 L 4.5,-4.5 L 15,-4.5 L 6.5,3 L 10,14 L 0,7 L -10,14 L -6.5,3 L -15,-4.5 L -4.5,-4.5 Z'); "
+                + "                          star.setAttribute('fill', '#ff0000'); "
+                + "                          star.setAttribute('stroke', '#ffffff'); "
+                + "                          star.setAttribute('stroke-width', '2'); "
+                + "                          g.appendChild(star); "
+                + "                          var peg = document.getElementById('pegman'); "
+                + "                          if (peg && peg.parentNode) svg.insertBefore(g, peg); "
+                + "                          else svg.appendChild(g); "
                 + "                        } "
-                + "                        grid[row][col] = 3; "
                 + "                      } "
-                + "                      window.od = { x: col, y: row }; "
                 + "                    } catch(eG) {} "
                 + "                    try { if (window.__momotShowAndRefresh) window.__momotShowAndRefresh(); } catch(e4b) {} "
                 + "                    try { if (window.__momotStartRun) window.__momotStartRun(); } catch(e4c) {} "
@@ -1697,6 +1712,14 @@ public class BlockyUI extends Application {
             } catch (Exception e) {
                 System.err.println("[JSBridge] teleportPegman failed: " + e.getMessage());
                 e.printStackTrace();
+            }
+        }
+
+        public void clearDirectManipulation() {
+            try {
+                engine.clearDirectManipulationGoal();
+            } catch (Exception e) {
+                System.err.println("[JSBridge] clearDirectManipulation failed: " + e.getMessage());
             }
         }
 
@@ -2676,10 +2699,14 @@ public class BlockyUI extends Application {
                 webEngine.executeScript("window.__injectQ = " + startCell.getX() + "; window.__injectS = " + startCell.getY() + ";");
             }
             // Visual goal marker in Maze is driven by window.od.
-            // Prefer DMG if present; otherwise show the original GOAL.
-            Cell odCell = dmgCell != null ? dmgCell : goalCell;
-            if (odCell != null) {
-                webEngine.executeScript("window.__injectOd = {x: " + odCell.getX() + ", y: " + odCell.getY() + "};");
+            // Goal pin ALWAYS points to the real GOAL cell.
+            if (goalCell != null) {
+                webEngine.executeScript("window.__injectOd = {x: " + goalCell.getX() + ", y: " + goalCell.getY() + "};");
+            }
+            if (dmgCell != null) {
+                webEngine.executeScript("window.__injectDmg = {x: " + dmgCell.getX() + ", y: " + dmgCell.getY() + "};");
+            } else {
+                webEngine.executeScript("window.__injectDmg = null;");
             }
             webEngine.executeScript("window.__injectK = " + levelId + ";");
             webEngine.executeScript("window.__injectOdVal = " + (maxBlocks < 0 ? "Infinity" : String.valueOf(maxBlocks)) + ";");
@@ -2740,12 +2767,12 @@ public class BlockyUI extends Application {
                 "  if (typeof Wd === 'function') { " +
                 "    Wd(); " +
                 "    try { " +
-                "      if (window.od && typeof window.od.x === 'number') { " +
+                "      if (window.__injectDmg && typeof window.__injectDmg.x === 'number') { " +
                 "        var c = document.getElementById('svgMaze'); " +
                 "        var ns = 'http://www.w3.org/2000/svg'; " +
                 "        var g = document.createElementNS(ns, 'g'); " +
                 "        g.setAttribute('id', 'dmgMarker'); " +
-                "        g.setAttribute('transform', 'translate(' + (50 * window.od.x + 25) + ',' + (50 * window.od.y + 25) + ')'); " +
+                "        g.setAttribute('transform', 'translate(' + (50 * window.__injectDmg.x + 25) + ',' + (50 * window.__injectDmg.y + 25) + ')'); " +
                 "        var star = document.createElementNS(ns, 'path'); " +
                 "        star.setAttribute('d', 'M 0,-15 L 4.5,-4.5 L 15,-4.5 L 6.5,3 L 10,14 L 0,7 L -10,14 L -6.5,3 L -15,-4.5 L -4.5,-4.5 Z'); " +
                 "        star.setAttribute('fill', '#ff0000'); " +

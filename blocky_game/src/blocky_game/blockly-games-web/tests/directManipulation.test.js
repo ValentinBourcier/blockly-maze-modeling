@@ -34,6 +34,7 @@ describe('directManipulation.test.js Test Suite', () => {
             [0, 0, 0, 0]
         ];
         window.Q = 0; window.S = 0; window.T = 1;
+        window.od = { x: 3, y: 2 };
 
         teleportCalls = [];
         window.javaBridge = {
@@ -99,11 +100,16 @@ describe('directManipulation.test.js Test Suite', () => {
         const clickEv = new window.MouseEvent('click', { clientX: 225, clientY: 25, bubbles: true });
         svg.dispatchEvent(clickEv);
 
-        // Clicked cell should now be goal (3) and old goal (2, 2) should now be path (1)
-        assert.strictEqual(window.X[0][2], 3);
-        assert.strictEqual(window.X[2][2], 1);
-        assert.strictEqual(window.od.x, 2);
-        assert.strictEqual(window.od.y, 0);
+        // Clicked cell should stay path (1) and level goal should remain unchanged (3)
+        assert.strictEqual(window.X[0][2], 1);
+        assert.strictEqual(window.X[2][3], 3);
+        assert.strictEqual(window.od.x, 3);
+        assert.strictEqual(window.od.y, 2);
+
+        // A dmgMarker overlay should be placed on svgMaze at (2, 0) -> (50*2+25, 50*0+25) = (125, 25)
+        const marker = window.document.getElementById('dmgMarker');
+        assert.ok(marker, 'dmgMarker should be rendered on svgMaze');
+        assert.strictEqual(marker.getAttribute('transform'), 'translate(125,25)');
 
         // MoMoT run was automatically triggered
         assert.strictEqual(runCalls.length, 1);
@@ -151,7 +157,9 @@ describe('directManipulation.test.js Test Suite', () => {
         await new Promise(r => setTimeout(r, 20));
 
         assert.deepStrictEqual(eventOrder, ['stopMomotRun', 'teleportPegman', 'runMomotWithParams']);
-        assert.strictEqual(window.X[0][2], 3);
-        assert.strictEqual(window.X[2][2], 1);
+        assert.strictEqual(window.X[0][2], 1);
+        assert.strictEqual(window.X[2][3], 3);
+        const marker = window.document.getElementById('dmgMarker');
+        assert.ok(marker, 'dmgMarker should be rendered on svgMaze');
     });
 });
