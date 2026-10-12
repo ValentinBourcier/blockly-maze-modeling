@@ -499,6 +499,7 @@
             '  color: #57606a;',
             '}',
             '#levelTimerWidget .timer-clock {',
+            '  display: none;',
             '  font-variant-numeric: tabular-nums;',
             '  font-weight: 700;',
             '  color: #1a7f37;',
@@ -665,7 +666,7 @@
             widget.innerHTML = [
                 '<span class="timer-session" id="timerSessionDisplay" title="' + (sessionId || '') + '">' + (userId || 'No Session') + '</span>',
                 '<span class="timer-level">Lvl ' + level + '</span>',
-                '<span class="timer-clock" id="timerClockDisplay">' + formatDisplayTime(currentElapsedMs) + '</span>',
+                '<span class="timer-clock" id="timerClockDisplay" style="display: none;">' + formatDisplayTime(currentElapsedMs) + '</span>',
                 '<span class="timer-goal-note" id="timerGoalNote">Goal reached. You can keep improving this solution.</span>',
                 actionBtnHtml,
                 '<button type="button" class="timer-btn" id="timerNewSessionBtn" title="Start a new session">New Session</button>'
