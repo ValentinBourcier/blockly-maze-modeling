@@ -15,10 +15,6 @@ public class HttpSearchServer {
     private static final int DEFAULT_PORT = 8080;
 
     public static void main(String[] args) throws IOException {
-        try {
-            javafx.application.Platform.startup(() -> {});
-        } catch (Throwable ignored) {}
-
         int port = DEFAULT_PORT;
         String portProp = System.getProperty("http.port");
         if (portProp == null) {

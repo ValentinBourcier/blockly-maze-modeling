@@ -1,7 +1,5 @@
 package blocky_game;
 
-import javafx.application.Platform;
-
 import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -237,11 +235,14 @@ public final class MomotRunService {
                 if (acquired) {
                     SEARCH_SEMAPHORE.release();
                 }
+                Thread.interrupted(); // Clear interrupted status before calling completion callback
                 if (onDone != null) {
                     try {
-                        Platform.runLater(onDone);
-                    } catch (Throwable ignored) {
                         onDone.run();
+                    } catch (Throwable t3) {
+                        if (logLine != null) {
+                            logLine.accept("[MoMoT] onDone callback failed: " + throwableToString(t3));
+                        }
                     }
                 }
             }

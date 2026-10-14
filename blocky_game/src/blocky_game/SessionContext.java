@@ -364,10 +364,6 @@ public class SessionContext {
         touch();
         if (isMomotRunning) {
             MomotRunService.stopMomotSearch(this.sessionId);
-            Thread t = this.momotThread;
-            if (t != null && t.isAlive()) {
-                MomotRunService.stopRun(t);
-            }
             this.momotThread = null;
             isMomotRunning = false;
             momotStatus = "Stopped";
