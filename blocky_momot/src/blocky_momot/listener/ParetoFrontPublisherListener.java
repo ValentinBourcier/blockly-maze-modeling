@@ -368,12 +368,12 @@ public class ParetoFrontPublisherListener extends AbstractProgressListener {
                     synchronized (globalParetoFront) {
                         snapshot = new NondominatedPopulation(globalParetoFront);
                     }
-                    if (!snapshot.isEmpty()) {
-                        for (IParetoFrontSubscriber subscriber : subscribers) {
-                            try {
-                                subscriber.onParetoFrontUpdated(event.getCurrentNFE(), snapshot);
-                            } catch (Throwable ignored) {
-                            }
+                    int seed = event.getCurrentSeed();
+                    int totalSeeds = event.getTotalSeeds();
+                    for (IParetoFrontSubscriber subscriber : subscribers) {
+                        try {
+                            subscriber.onProgressUpdated(seed, totalSeeds, nfe, snapshot);
+                        } catch (Throwable ignored) {
                         }
                     }
                 }

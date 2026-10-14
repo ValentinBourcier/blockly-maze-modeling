@@ -17,9 +17,9 @@ This repository contains **Blocky Maze**, a Java/JavaFX application integrating 
 
 ## Framework & Toolchain Quirks
 - **JSBridge**: JavaFX WebView uses **weak references** for `window.javaBridge`. `BlockyUI` keeps a strong field reference `jsBridge` to prevent GC.
-- **Case Sensitivity**: Blockly uses camelCase (e.g., `turnRight`). `GameEngine` methods like `rebuildProgram` and `parseCondition` use `.toLowerCase()` for robust matching—preserve this.
-- **WebView Sync**: Injected JS in `BlockyUI.injectSyncScript` polls for workspace and hooks the "Run" button via `MutationObserver`.
-- **Sync Safety**: Use the `suppressSync` flag in `BlockyUI` when applying state from Java to WebView to prevent stale JS state from overwriting the model during the update.
+- **Case Sensitivity**: Blockly uses camelCase (e.g., `turnRight`). `BlockyAstMapper` methods like `createStatementFromData` (used during `rebuildProgram`) and `parseCondition` use `.toLowerCase()` for robust matching—preserve this.
+- **WebView Sync**: Injected JS in `BlockyJsBridgeController.injectSyncScript` polls for workspace and hooks the "Run" button via `MutationObserver`.
+- **Sync Safety**: Use the `suppressSync` flag in `BlockyJsBridgeController` when applying state from Java to WebView to prevent stale JS state from overwriting the model during the update.
 - **Deterministic Simulation**: `GameEngine.simulateUserProgram` relies on `determineStartOrientation`. If not explicitly set in EMF, it infers it from the `START` cell's neighbors.
 
 ## Modeling (Henshin & MOMoT)

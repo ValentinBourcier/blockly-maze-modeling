@@ -375,6 +375,7 @@ class HttpSearchServerTest {
         assertTrue(exportHtmlResp.headers().firstValue("Content-Type").orElse("").contains("text/html"));
         assertTrue(exportHtmlResp.body().contains("<!DOCTYPE html>"));
         assertTrue(exportHtmlResp.body().contains("Blockly Maze"));
+        assertTrue(exportHtmlResp.body().contains("blockPreview.js"));
     }
 
     @Test

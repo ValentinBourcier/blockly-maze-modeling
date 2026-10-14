@@ -16,16 +16,12 @@ import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 
 import blocky.AtomicStatement;
 import blocky.AtomicStatementKind;
-import blocky.BlockyFactory;
 import blocky.BlockyPackage;
 import blocky.Body;
 import blocky.Cell;
 import blocky.CellType;
-import blocky.ConditionKind;
 import blocky.Container;
 import blocky.Direction;
-import blocky.ExecutionTrace;
-import blocky.GameState;
 import blocky.GameStatus;
 import blocky.GridMap;
 import blocky.IfStmt;
@@ -35,9 +31,8 @@ import blocky.SensorDirection;
 import blocky.Statement;
 
 /**
- * Headless simulator for Blocky maze programs. Executes a Level's solution
- * on its map and returns the final game status (WON, CRASHED, or RUNNING).
- * Used by MOMoT fitness to evaluate whether a transformed model reaches the goal.
+ * Headless simulator for Blocky maze programs.
+ * Adapts {@link SimulationEngine} traces to MOMoT fitness objectives.
  */
 public final class BlockySimulator {
 
@@ -59,106 +54,7 @@ public final class BlockySimulator {
      * illegal program as "WON" even though it can't be executed in-game.
      */
     public static boolean violatesLevelConstraints(Level level, Body solution) {
-        if (level == null || solution == null) {
-            return false;
-        }
-
-        int maxBlocks = level.getMaxBlocks();
-        int blocks = countStatements(solution);
-        if (maxBlocks > 0 && blocks > maxBlocks) {
-            System.out.println("Diag: Violation - too many blocks: " + blocks + " > " + maxBlocks);
-            return true;
-        }
-
-        if (!level.isAllowLoops() && containsLoop(solution)) {
-            System.out.println("Diag: Violation - loops not allowed");
-            return true;
-        }
-
-        if (!level.isAllowConditionals() && containsIf(solution)) {
-            System.out.println("Diag: Violation - conditionals not allowed");
-            return true;
-        }
-
-        return false;
-    }
-
-    private static int countStatements(Body body) {
-        if (body == null) {
-            return 0;
-        }
-        return countStatements(body.getFirstContainer());
-    }
-
-    private static int countStatements(Container c) {
-        int count = 0;
-        Container cur = c;
-        while (cur != null) {
-            Statement s = cur.getStatement();
-            if (s != null) {
-                count++;
-                if (s instanceof Loop) {
-                    count += countStatements(((Loop) s).getBody());
-                } else if (s instanceof IfStmt) {
-                    IfStmt i = (IfStmt) s;
-                    count += countStatements(i.getThenBody());
-                    count += countStatements(i.getElseBody());
-                }
-            }
-            cur = cur.getNext();
-        }
-        return count;
-    }
-
-    private static boolean containsLoop(Body body) {
-        if (body == null) {
-            return false;
-        }
-        return containsLoop(body.getFirstContainer());
-    }
-
-    private static boolean containsLoop(Container c) {
-        Container cur = c;
-        while (cur != null) {
-            Statement s = cur.getStatement();
-            if (s instanceof Loop) {
-                return true;
-            }
-            if (s instanceof IfStmt) {
-                IfStmt i = (IfStmt) s;
-                if (containsLoop(i.getThenBody()) || containsLoop(i.getElseBody())) {
-                    return true;
-                }
-            }
-            cur = cur.getNext();
-        }
-        return false;
-    }
-
-    private static boolean containsIf(Body body) {
-        if (body == null) {
-            return false;
-        }
-        return containsIf(body.getFirstContainer());
-    }
-
-    private static boolean containsIf(Container c) {
-        Container cur = c;
-        while (cur != null) {
-            Statement s = cur.getStatement();
-            if (s != null) {
-                if (s instanceof IfStmt) {
-                    return true;
-                }
-                if (s instanceof Loop) {
-                    if (containsIf(((Loop) s).getBody())) {
-                        return true;
-                    }
-                }
-            }
-            cur = cur.getNext();
-        }
-        return false;
+        return SimulationEngine.violatesLevelConstraints(level, solution);
     }
 
     /**
@@ -236,13 +132,9 @@ public final class BlockySimulator {
 
     /**
      * Minimum BFS distance-to-goal encountered along the solution path.
-     * Computed live, so cells do not need a pre-set {@code distanceToGoal}.
+     * Computed live from the execution trace.
      * Returns {@code 0} when the path reaches the goal, and {@code penalty}
      * when the level is invalid or no goal is reachable.
-     *
-     * @param level the level to simulate
-     * @param penalty value to return if no goal is reachable or level is invalid
-     * @return minimum distance to goal encountered during simulation
      */
     public static int closestToGoalOrPenalty(Level level, int penalty) {
         return distanceToGoalOrPenalty(level, penalty);
@@ -251,39 +143,19 @@ public final class BlockySimulator {
     /**
      * Run the level's solution on the level's map and return the status of the
      * last game state (WON if goal reached, CRASHED on wall or loop limit, RUNNING if incomplete).
-     *
-     * @param level the level with map and solution (may be null solution)
-     * @return final GameStatus after execution
      */
     public static GameStatus run(Level level) {
         if (level == null || level.getMap() == null) {
             return GameStatus.CRASHED;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
+        if (level.getSolution() == null) {
             return GameStatus.RUNNING; // no program: never wins
         }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return GameStatus.CRASHED;
         }
-
-        GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return GameStatus.CRASHED;
-        }
-
-        GameRun g = executeLikeGame(level, startCell, null);
-        if (g.crashed) {
+        GameRun g = executeLikeGame(level, null);
+        if (g == null || g.crashed) {
             return GameStatus.CRASHED;
         }
         return g.position.getType() == determineWinCellType(level) ? GameStatus.WON : GameStatus.RUNNING;
@@ -308,17 +180,36 @@ public final class BlockySimulator {
      * <li>a loop repeats while Pegman is not on the goal (maze_forever); a loop that makes no progress or runs
      * longer than the step budget counts as a crash (the game's tick limit).</li>
      * </ul>
+     * This is deliberately separate from {@link SimulationEngine}, which stops at the first arrival and counts
+     * every statement (the debugger trace).
      *
      * @param distanceField if not null, the minimum distance over all visited cells is tracked
+     * @return null if the level has no map or no start cell
      */
-    private static GameRun executeLikeGame(Level level, Cell startCell, Map<Cell, Integer> distanceField) {
-        GameRun g = new GameRun();
-        g.position = startCell;
-        g.orientation = determineStartOrientation(level, startCell);
-        trackDistance(g, distanceField);
+    private static GameRun executeLikeGame(Level level, Map<Cell, Integer> distanceField) {
+        if (level == null || level.getMap() == null) {
+            return null;
+        }
         GridMap map = level.getMap();
-        int maxActions = map.getWidth() * map.getHeight() * 2;
-        executeBodyLikeGame(level.getSolution(), g, determineWinCellType(level), maxActions, distanceField);
+        Cell start = null;
+        for (Cell c : map.getCells()) {
+            if (c != null && c.getType() == CellType.START) {
+                start = c;
+                break;
+            }
+        }
+        if (start == null && !map.getCells().isEmpty()) {
+            start = map.getCells().get(0);
+        }
+        if (start == null) {
+            return null;
+        }
+        GameRun g = new GameRun();
+        g.position = start;
+        g.orientation = determineStartOrientation(level, start);
+        trackDistance(g, distanceField);
+        executeBodyLikeGame(level.getSolution(), g, determineWinCellType(level),
+                SimulationEngine.computeLoopLimit(map), distanceField);
         return g;
     }
 
@@ -334,7 +225,7 @@ public final class BlockySimulator {
         for (Container c = body.getFirstContainer(); c != null && !g.crashed; c = c.getNext()) {
             Statement stmt = c.getStatement();
             if (stmt instanceof AtomicStatement) {
-                AtomicKindExec.apply((AtomicStatement) stmt, g);
+                applyAtomic((AtomicStatement) stmt, g);
                 trackDistance(g, distanceField);
             } else if (stmt instanceof Loop) {
                 Body loopBody = ((Loop) stmt).getBody();
@@ -352,37 +243,36 @@ public final class BlockySimulator {
             } else if (stmt instanceof IfStmt) {
                 IfStmt i = (IfStmt) stmt;
                 g.actions++; // the path check is logged as an action by the game
-                SensorDirection sensor = conditionKindToSensor(i.getCondition());
-                Cell target = getAdjacent(g.position, getRelativeDir(g.orientation, sensor));
+                SensorDirection sensor = SimulationEngine.conditionKindToSensor(i.getCondition());
+                Cell target = SimulationEngine.getAdjacent(g.position,
+                        SimulationEngine.getRelativeDir(g.orientation, sensor));
                 boolean cond = target != null && target.getType() != CellType.WALL;
                 executeBodyLikeGame(cond ? i.getThenBody() : i.getElseBody(), g, win, maxActions, distanceField);
             }
         }
     }
 
-    /** One move or turn, with the same defaults as before (missing kind behaves as TURN_LEFT). */
-    private static final class AtomicKindExec {
-        static void apply(AtomicStatement a, GameRun g) {
-            AtomicStatementKind kind = a.getKind() != null ? a.getKind() : AtomicStatementKind.TURN_LEFT;
-            g.actions++;
-            switch (kind) {
-            case MOVE_FORWARD: {
-                Cell target = getAdjacent(g.position, g.orientation);
-                if (target == null || target.getType() == CellType.WALL) {
-                    g.crashed = true;
-                } else {
-                    g.position = target;
-                }
-                break;
+    /** One move or turn; a missing kind behaves as TURN_LEFT (same default as SimulationEngine). */
+    private static void applyAtomic(AtomicStatement a, GameRun g) {
+        AtomicStatementKind kind = a.getKind() != null ? a.getKind() : AtomicStatementKind.TURN_LEFT;
+        g.actions++;
+        switch (kind) {
+        case MOVE_FORWARD: {
+            Cell target = SimulationEngine.getAdjacent(g.position, g.orientation);
+            if (target == null || target.getType() == CellType.WALL) {
+                g.crashed = true;
+            } else {
+                g.position = target;
             }
-            case TURN_RIGHT:
-                g.orientation = getRelativeDir(g.orientation, SensorDirection.RIGHT);
-                break;
-            case TURN_LEFT:
-            default:
-                g.orientation = getRelativeDir(g.orientation, SensorDirection.LEFT);
-                break;
-            }
+            break;
+        }
+        case TURN_RIGHT:
+            g.orientation = SimulationEngine.getRelativeDir(g.orientation, SensorDirection.RIGHT);
+            break;
+        case TURN_LEFT:
+        default:
+            g.orientation = SimulationEngine.getRelativeDir(g.orientation, SensorDirection.LEFT);
+            break;
         }
     }
 
@@ -399,33 +289,14 @@ public final class BlockySimulator {
      * during the simulation (whether won, crashed, or terminated).
      */
     public static int simulationSteps(Level level) {
-        if (level == null || level.getMap() == null) {
+        if (level == null || level.getMap() == null || level.getSolution() == null) {
             return 0;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
-            return 0;
-        }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return 100000;
         }
-
-        GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return 0;
-        }
-
-        return executeLikeGame(level, startCell, null).actions;
+        GameRun g = executeLikeGame(level, null);
+        return g != null ? g.actions : 0;
     }
 
     /**
@@ -433,50 +304,20 @@ public final class BlockySimulator {
      * otherwise returns {@code penalty}.
      */
     public static int stepsToGoalOrPenalty(Level level, int penalty) {
-        if (level == null || level.getMap() == null) {
+        if (level == null || level.getMap() == null || level.getSolution() == null) {
             return penalty;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return penalty;
         }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
-            return penalty;
-        }
-
-        GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return penalty;
-        }
-
-        GameRun g = executeLikeGame(level, startCell, null);
-        boolean won = !g.crashed && g.position.getType() == determineWinCellType(level);
+        GameRun g = executeLikeGame(level, null);
+        boolean won = g != null && !g.crashed && g.position.getType() == determineWinCellType(level);
         return won ? g.actions : penalty;
     }
 
     /**
      * Executes the level's solution and returns the minimum BFS distance-to-goal encountered along
      * Pegman's path.
-     *
-     * We first compute a distance field by doing a multi-source BFS from all goal cells:
-     * - If the map contains any {@code DMG} cell(s), DMG is treated as the goal.
-     * - Otherwise {@code GOAL} is treated as the goal.
-     *
-     * While executing the program, we track the minimum distance value of any visited cell.
-     * If Pegman reaches the goal, this value becomes 0.
-     *
-     * If the level is invalid, no goal cells exist, or the start cell is not connected to any goal,
-     * returns {@code penalty}.
      */
     public static int distanceToGoalOrPenalty(Level level) {
         return distanceToGoalOrPenalty(level, 100000);
@@ -486,40 +327,22 @@ public final class BlockySimulator {
      * Same as {@link #distanceToGoalOrPenalty(Level)} but with a custom penalty value.
      */
     public static int distanceToGoalOrPenalty(Level level, int penalty) {
-        if (level == null || level.getMap() == null) {
+        if (level == null || level.getMap() == null || level.getSolution() == null) {
             return penalty;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
-            return penalty;
-        }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return penalty;
         }
 
         GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return penalty;
-        }
-
         final CellType winCellType = determineWinCellType(level);
         Map<Cell, Integer> distanceField = computeDistanceField(map, winCellType);
         if (distanceField.isEmpty()) {
             return penalty;
         }
 
-        GameRun g = executeLikeGame(level, startCell, distanceField);
-        if (g.minDistance == Integer.MAX_VALUE) {
+        GameRun g = executeLikeGame(level, distanceField);
+        if (g == null || g.minDistance == Integer.MAX_VALUE) {
             return penalty;
         }
         // The game judges the goal by the final position: a run that passed over the goal but ended elsewhere
@@ -528,7 +351,7 @@ public final class BlockySimulator {
         return (g.minDistance == 0 && !onGoal) ? 1 : g.minDistance;
     }
 
-    private static Map<Cell, Integer> computeDistanceField(GridMap map, CellType goalType) {
+    public static Map<Cell, Integer> computeDistanceField(GridMap map, CellType goalType) {
         Map<Cell, Integer> dist = new IdentityHashMap<>();
         if (map == null || goalType == null) {
             return dist;
@@ -561,64 +384,10 @@ public final class BlockySimulator {
     }
 
     public static CellType determineWinCellType(Level level) {
-        if (level == null || level.getMap() == null) return CellType.GOAL;
-        for (Cell c : level.getMap().getCells()) {
-            if (c != null && c.getType() == CellType.DMG) {
-                return CellType.DMG;
-            }
-        }
-        return CellType.GOAL;
+        return SimulationEngine.determineWinCellType(level);
     }
 
     public static Direction determineStartOrientation(Level level, Cell start) {
-        if (level != null && level.eIsSet(BlockyPackage.Literals.LEVEL__START_ORIENTATION)) {
-            return level.getStartOrientation();
-        }
-        if (start == null) return Direction.NORTH;
-        if (start.getTop() != null && start.getTop().getType() != CellType.WALL) return Direction.NORTH;
-        if (start.getRight() != null && start.getRight().getType() != CellType.WALL) return Direction.EAST;
-        if (start.getBottom() != null && start.getBottom().getType() != CellType.WALL) return Direction.SOUTH;
-        if (start.getLeft() != null && start.getLeft().getType() != CellType.WALL) return Direction.WEST;
-        return Direction.NORTH;
-    }
-
-    private static SensorDirection conditionKindToSensor(ConditionKind ck) {
-        // Align with generated EMF default: missing condition behaves as CHECK_FORWARD.
-        if (ck == null) ck = ConditionKind.CHECK_FORWARD;
-        if (ck == ConditionKind.CHECK_LEFT) return SensorDirection.LEFT;
-        if (ck == ConditionKind.CHECK_RIGHT) return SensorDirection.RIGHT;
-        return SensorDirection.AHEAD;
-    }
-
-    private static Cell getAdjacent(Cell c, Direction d) {
-        switch (d) {
-            case NORTH: return c.getTop();
-            case SOUTH: return c.getBottom();
-            case EAST:  return c.getRight();
-            case WEST:  return c.getLeft();
-        }
-        return null;
-    }
-
-    private static Direction getRelativeDir(Direction curr, SensorDirection sensor) {
-        // Align with generated EMF default: missing orientation behaves as NORTH.
-        if (curr == null) curr = Direction.NORTH;
-        if (sensor == SensorDirection.AHEAD) return curr;
-        if (sensor == SensorDirection.LEFT) {
-            switch (curr) {
-                case NORTH: return Direction.WEST;
-                case WEST:  return Direction.SOUTH;
-                case SOUTH: return Direction.EAST;
-                case EAST:  return Direction.NORTH;
-            }
-        } else {
-            switch (curr) {
-                case NORTH: return Direction.EAST;
-                case EAST:  return Direction.SOUTH;
-                case SOUTH: return Direction.WEST;
-                case WEST:  return Direction.NORTH;
-            }
-        }
-        return curr;
+        return SimulationEngine.determineStartOrientation(level, start);
     }
 }

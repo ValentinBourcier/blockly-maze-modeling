@@ -28,6 +28,10 @@ Thumbs.db
 level_sessions/
 blocky_game/level_sessions/
 blocky_game/blocky_game/level_sessions/
+momot_sessions/
+**/momot_sessions/
+node_modules/
+**/node_modules/
 
 
 # local secrets (admin password for docker compose)

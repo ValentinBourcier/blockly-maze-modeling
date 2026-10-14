@@ -641,10 +641,16 @@
                         renderProgress();
                     } catch(e) {}
                 };
-                window.__momotProgressDone = function() {
+                window.__momotProgressDone = function(cancelled) {
                     try {
                         if (progTimer) { clearInterval(progTimer); progTimer = null; }
-                        progEnded = true; renderProgress();
+                        progEnded = true;
+                        if (!cancelled && progLast) {
+                            progLast.pct = 100;
+                            if (progLast.runs) progLast.run = progLast.runs;
+                            if (progLast.gens) progLast.gen = progLast.gens;
+                        }
+                        renderProgress();
                     } catch(e) {}
                 };
 
@@ -679,12 +685,27 @@
                 }
                 window.__dbgDrawComparisonPath = __dbgDrawComparisonPath;
 
-                function renderSolutions(arr) {
+                function renderSolutions(data) {
                     try {
-                        if (arr === undefined || arr === null) {
-                            arr = window.__momotLastData || [];
-                        } else {
-                            window.__momotLastData = arr;
+                        var arr = [];
+                        if (Array.isArray(data)) {
+                            arr = data;
+                        } else if (data && typeof data === 'object' && Array.isArray(data.solutions)) {
+                            arr = data.solutions;
+                        } else if (data === undefined || data === null) {
+                            var cached = window.__momotLastData;
+                            if (Array.isArray(cached)) {
+                                arr = cached;
+                            } else if (cached && typeof cached === 'object' && Array.isArray(cached.solutions)) {
+                                arr = cached.solutions;
+                            } else {
+                                arr = [];
+                            }
+                        } else if (data && typeof data === 'object') {
+                            arr = data.solutions || [];
+                        }
+                        if (data !== undefined && data !== null) {
+                            window.__momotLastData = data;
                         }
                         var keepPath = window.__momotSelectedPath;
                         var keepScroll = list.scrollTop;
@@ -826,9 +847,9 @@
                         if (!bridge || !bridge.listMomotSolutions) { setStatus('Java bridge listMomotSolutions not available'); return; }
                         setStatus('Loading solutions...');
                         var txt = bridge.listMomotSolutions();
-                        var arr = [];
-                        try { arr = (typeof txt === 'string') ? JSON.parse(txt) : txt; } catch(e2) { arr = []; }
-                        renderSolutions(arr);
+                        var data = [];
+                        try { data = (typeof txt === 'string') ? JSON.parse(txt) : txt; } catch(e2) { data = []; }
+                        renderSolutions(data);
                     } catch(e) { setStatus('Refresh failed'); }
                 }
 
@@ -843,6 +864,10 @@
                         var oldMarker = document.getElementById('dmgMarker');
                         if (oldMarker && oldMarker.parentNode) oldMarker.parentNode.removeChild(oldMarker);
                     } catch(eM) {}
+                    try {
+                        var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
+                        if (bridge && typeof bridge.clearDirectManipulation === 'function') bridge.clearDirectManipulation();
+                    } catch(eB) {}
                 });
                 mStopBtn.addEventListener('click', function(){
                     try {
@@ -1421,17 +1446,29 @@
 
                                         function onPlacementDone() {
                                             try {
-                                                if (grid && Array.isArray(grid)) {
-                                                    for (var r = 0; r < grid.length; r++) {
-                                                        if (Array.isArray(grid[r])) {
-                                                            for (var c = 0; c < grid[r].length; c++) {
-                                                                if (grid[r][c] === 3) grid[r][c] = 1;
-                                                            }
-                                                        }
+                                                var goalObj = (typeof window.od === 'object' && window.od) ? window.od : null;
+                                                var isGoal = goalObj && goalObj.x === col && goalObj.y === row;
+                                                var oldMarker = document.getElementById('dmgMarker');
+                                                if (oldMarker && oldMarker.parentNode) oldMarker.parentNode.removeChild(oldMarker);
+
+                                                if (!isGoal) {
+                                                    var svg = document.getElementById('svgMaze');
+                                                    if (svg) {
+                                                        var ns = 'http://www.w3.org/2000/svg';
+                                                        var g = document.createElementNS(ns, 'g');
+                                                        g.setAttribute('id', 'dmgMarker');
+                                                        g.setAttribute('transform', 'translate(' + (50 * col + 25) + ',' + (50 * row + 25) + ')');
+                                                        var star = document.createElementNS(ns, 'path');
+                                                        star.setAttribute('d', 'M 0,-15 L 4.5,-4.5 L 15,-4.5 L 6.5,3 L 10,14 L 0,7 L -10,14 L -6.5,3 L -15,-4.5 L -4.5,-4.5 Z');
+                                                        star.setAttribute('fill', '#ff0000');
+                                                        star.setAttribute('stroke', '#ffffff');
+                                                        star.setAttribute('stroke-width', '2');
+                                                        g.appendChild(star);
+                                                        var peg = document.getElementById('pegman');
+                                                        if (peg && peg.parentNode) svg.insertBefore(g, peg);
+                                                        else svg.appendChild(g);
                                                     }
-                                                    grid[row][col] = 3;
                                                 }
-                                                window.od = { x: col, y: row };
                                             } catch(eG) {}
                                             try { if (window.__momotShowAndRefresh) window.__momotShowAndRefresh(); } catch(e4b) {}
                                             try { if (window.__momotStartRun) window.__momotStartRun(); } catch(e4c) {}

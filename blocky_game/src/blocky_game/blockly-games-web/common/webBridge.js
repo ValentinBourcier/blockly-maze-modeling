@@ -1309,6 +1309,29 @@
             });
         },
 
+        clearDirectManipulation: function() {
+            var oldMarker = document.getElementById('dmgMarker');
+            if (oldMarker && oldMarker.parentNode) oldMarker.parentNode.removeChild(oldMarker);
+            return new Promise(function(resolve, reject) {
+                getSessionId(function(sid) {
+                    if (!sid) {
+                        resolve(null);
+                        return;
+                    }
+                    fetch(apiBase + '/api/dm/clear', {
+                        method: 'POST',
+                        headers: attachTimerHeaders({ 'Content-Type': 'application/json', 'X-Session-ID': sid }),
+                        body: '{}'
+                    }).then(function(res) {
+                        if (res && typeof res.ok === 'boolean' && !res.ok) {
+                            throw new Error('HTTP ' + res.status);
+                        }
+                        return res.json ? res.json() : res;
+                    }).then(resolve).catch(resolve);
+                });
+            });
+        },
+
         debugStart: function(q, s, t) {
             localDbg.startX = getStartX(q);
             localDbg.startY = getStartY(s);
@@ -1524,13 +1547,22 @@
         }
     }
 
-    function finishMomotPolling(generation) {
+    function finishMomotPolling(generation, finalProgress) {
         if (generation !== pollGeneration) return;
         momotIsRunning = false;
         window.__momotIsRunning = false;
         if (pollInterval) {
             clearInterval(pollInterval);
             pollInterval = null;
+        }
+        if (finalProgress && typeof window.__momotSetProgress === 'function') {
+            window.__momotSetProgress(
+                finalProgress.totalRuns || finalProgress.run || 1,
+                finalProgress.totalRuns || 1,
+                finalProgress.totalGens || finalProgress.gen || 1,
+                finalProgress.totalGens || 1,
+                100.0
+            );
         }
         if (typeof window.__momotProgressDone === 'function') {
             window.__momotProgressDone();
@@ -1594,7 +1626,7 @@
                     if (finished || (seenRunning && !data.running)) {
                         momotIsRunning = false;
                         window.__momotIsRunning = false;
-                        finishMomotPolling(generation);
+                        finishMomotPolling(generation, data.progress);
                     }
                 }).catch(function(e) {
                     if (generation !== pollGeneration) return;
@@ -1608,7 +1640,7 @@
         }
 
         pollOnce();
-        pollInterval = setInterval(pollOnce, 1000);
+        pollInterval = setInterval(pollOnce, 250);
     }
 
     window.__blockyResetMomotSession = function() {

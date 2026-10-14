@@ -205,4 +205,43 @@ class GameEngineFeatureTest {
         int dist = blocky_momot.BlockySimulator.distanceToGoalOrPenalty(level, 100000);
         assertEquals(0, dist);
     }
+
+    @Test
+    void testDirectManipulationPreservesLevelGoal() {
+        GameEngine engine = new GameEngine();
+        engine.setMapFromJson("[[2,1,0],[0,1,0],[0,1,3]]");
+        GridMap map = engine.getCurrentLevel().getMap();
+
+        // Before DM: goal cell is (2, 2)
+        assertEquals(2, engine.getGoalCell(map).getX());
+        assertEquals(2, engine.getGoalCell(map).getY());
+        assertNull(engine.getDmgCell(map));
+
+        // Direct manipulation on (1, 0)
+        engine.teleportPegman(1, 0, 1);
+
+        // Goal cell must still be (2, 2) and DMG is (1, 0)
+        Cell currentGoal = engine.getGoalCell(map);
+        assertNotNull(currentGoal);
+        assertEquals(2, currentGoal.getX());
+        assertEquals(2, currentGoal.getY());
+        assertEquals(CellType.GOAL, currentGoal.getType());
+
+        Cell dmg = engine.getDmgCell(map);
+        assertNotNull(dmg);
+        assertEquals(1, dmg.getX());
+        assertEquals(0, dmg.getY());
+        assertEquals(CellType.DMG, dmg.getType());
+
+        // WebView grid must keep GOAL at (2, 2) as 3 and DMG at (1, 0) as walkable path (1)
+        int[][] webGrid = engine.buildGridForWebView(map);
+        assertEquals(3, webGrid[2][2]);
+        assertEquals(1, webGrid[0][1]);
+        assertEquals(2, webGrid[0][0]);
+
+        // Clearing DM leaves GOAL intact
+        engine.clearDirectManipulationGoal();
+        assertNull(engine.getDmgCell(map));
+        assertEquals(CellType.GOAL, engine.getGoalCell(map).getType());
+    }
 }

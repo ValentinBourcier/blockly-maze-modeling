@@ -202,4 +202,36 @@ describe('blockyUIOverlay.js Test Suite', () => {
         const tds = list.querySelectorAll('tbody tr td');
         assert.strictEqual(tds.length, 5, 'Should have exactly 5 objective columns and no Model column');
     });
+
+    it('renders solutions from object contract { solutions: [...] } and updates progress properly on done', async () => {
+        await new Promise(r => setTimeout(r, 150));
+        const list = window.document.getElementById('__momotList');
+        const status = window.document.getElementById('__momotStatus');
+
+        // Test object wrapper format (returned by MomotUiCoordinator.listMomotSolutions)
+        window.__momotRenderSolutions({
+            firstGoalTimeMs: 1500,
+            solutions: [
+                { modelPath: 'models/sol_obj.xmi', objectiveLine: '-1.0 2.0 3.0 0.0 2.0' },
+                { modelPath: 'models/sol_obj2.xmi', objectiveLine: '0.0 1.0 5.0 1.0 4.0' }
+            ]
+        });
+
+        assert.strictEqual(list.style.display, 'block', 'List should be displayed for object format');
+        const rows = list.querySelectorAll('tbody tr');
+        assert.strictEqual(rows.length, 2, 'Should render 2 solution rows');
+        assert.ok(status.textContent.includes('2 candidate(s)'), 'Status should report 2 candidates');
+
+        // Test progress lifecycle and progress done
+        window.__momotProgressStart(10, 40);
+        window.__momotSetProgress(2, 10, 5, 40, 15.0);
+        const progText = window.document.getElementById('__momotProgressText');
+        assert.ok(progText.textContent.includes('Run 2/10'), 'Should reflect in-flight progress');
+
+        window.__momotProgressDone();
+        assert.ok(progText.textContent.includes('Run 10/10'), 'Progress done should update to final run 10/10');
+        assert.ok(progText.textContent.includes('generation 40/40'), 'Progress done should update to final generation 40/40');
+        assert.ok(progText.textContent.includes('100%'), 'Progress done should update to 100%');
+        assert.ok(progText.textContent.includes('| ended'), 'Progress done should append | ended');
+    });
 });
