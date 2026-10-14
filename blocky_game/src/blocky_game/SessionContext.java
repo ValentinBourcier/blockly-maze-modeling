@@ -303,20 +303,37 @@ public class SessionContext {
         final java.util.concurrent.atomic.AtomicInteger curRun = new java.util.concurrent.atomic.AtomicInteger(1);
         final java.util.concurrent.atomic.AtomicInteger lastNfe = new java.util.concurrent.atomic.AtomicInteger(-1);
 
-        java.util.function.BiConsumer<Integer, Object> subscriber = (nfe, paretoFront) -> {
-            if (runGen != searchGeneration.get()) return;
-            int n = nfe == null ? 0 : Math.max(0, nfe);
-            int prev = lastNfe.getAndSet(n);
-            if (prev >= 0 && n < prev && curRun.get() < nrRuns) {
-                curRun.incrementAndGet();
+        Object subscriber = new Object() {
+            public void onProgressUpdated(int currentSeed, int totalSeeds, int nfe, Object paretoFront) {
+                if (runGen != searchGeneration.get()) return;
+                if (currentSeed > 0) {
+                    int r = Math.min(nrRuns, currentSeed);
+                    if (r > curRun.get()) {
+                        curRun.set(r);
+                    }
+                }
+                updateProgress(nfe);
             }
-            int r = curRun.get();
-            int g = Math.min(generationsPerRun, (n + Math.max(1, pop) - 1) / Math.max(1, pop));
-            double pct = Math.min(100.0, 100.0 * ((r - 1) * (double) evalsPerRun + Math.min(n, evalsPerRun))
-                    / ((double) nrRuns * evalsPerRun));
-            this.progressRun = r;
-            this.progressGen = g;
-            this.progressPct = pct;
+
+            public void onParetoFrontUpdated(int nfe, Object paretoFront) {
+                if (runGen != searchGeneration.get()) return;
+                updateProgress(nfe);
+            }
+
+            private void updateProgress(int nfe) {
+                int n = Math.max(0, nfe);
+                int prev = lastNfe.getAndSet(n);
+                if (prev >= 0 && n < prev && curRun.get() < nrRuns) {
+                    curRun.incrementAndGet();
+                }
+                int r = curRun.get();
+                int g = Math.min(generationsPerRun, (n + Math.max(1, pop) - 1) / Math.max(1, pop));
+                double pct = Math.min(100.0, 100.0 * ((r - 1) * (double) evalsPerRun + Math.min(n, evalsPerRun))
+                        / ((double) nrRuns * evalsPerRun));
+                progressRun = r;
+                progressGen = g;
+                progressPct = pct;
+            }
         };
 
         this.momotThread = MomotRunService.runAsync(spec, log -> {

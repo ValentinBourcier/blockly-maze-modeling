@@ -830,4 +830,78 @@ class ParallelMomotSearchTest {
         session.runMomotWithParams(1, "[[2,3]]", "{\"level\":1}", prog1Xml, 1, 20, 100, 1, 4);
         assertFalse(session.isMomotRunning(), "Stale epoch run must not start search");
     }
+
+    @Test
+    void testLiveSolutionsAndMultipleRuns() throws Exception {
+        SessionContext session = new SessionContext("test-live-runs-" + System.nanoTime());
+        session.runMomotWithParams(0, 50, 2000, 10, 10);
+        long start = System.currentTimeMillis();
+        while (session.isMomotRunning() && System.currentTimeMillis() - start < 30000) {
+            System.out.println("[REPRO] Status=" + session.getMomotStatus()
+                + " Run=" + session.getProgressRun() + "/" + session.getProgressTotalRuns()
+                + " Gen=" + session.getProgressGen() + "/" + session.getProgressTotalGens()
+                + " Pct=" + session.getProgressPct()
+                + " Sols=" + session.listMomotSolutions().size());
+            Thread.sleep(500);
+        }
+        System.out.println("[REPRO-FINAL] Status=" + session.getMomotStatus()
+            + " Run=" + session.getProgressRun() + "/" + session.getProgressTotalRuns()
+            + " Gen=" + session.getProgressGen() + "/" + session.getProgressTotalGens()
+            + " Pct=" + session.getProgressPct()
+            + " Sols=" + session.listMomotSolutions().size());
+    }
+
+    @Test
+    void testHttpServerMomotRunAndStatus() throws Exception {
+        com.sun.net.httpserver.HttpServer server = HttpSearchServer.startServer(0);
+        int port = server.getAddress().getPort();
+        java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+        String base = "http://127.0.0.1:" + port;
+        try {
+            java.net.http.HttpRequest newSessReq = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(base + "/api/session/new"))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.noBody())
+                    .build();
+            java.net.http.HttpResponse<String> newSessRes = client.send(newSessReq, java.net.http.HttpResponse.BodyHandlers.ofString());
+            String sessBody = newSessRes.body();
+            String sid = sessBody.replaceAll(".*\"sessionId\":\"([^\"]+)\".*", "$1");
+            System.out.println("[HTTP-TEST] Created sessionId=" + sid);
+
+            String runJson = "{\"seed\":0,\"populationSize\":50,\"maxEvaluations\":2000,\"nrRuns\":10,\"solutionLength\":10}";
+            java.net.http.HttpRequest runReq = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(base + "/api/momot/run"))
+                    .header("Content-Type", "application/json")
+                    .header("X-Session-ID", sid)
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(runJson))
+                    .build();
+            java.net.http.HttpResponse<String> runRes = client.send(runReq, java.net.http.HttpResponse.BodyHandlers.ofString());
+            System.out.println("[HTTP-TEST] Run response: " + runRes.body());
+
+            long start = System.currentTimeMillis();
+            boolean running = true;
+            while (running && System.currentTimeMillis() - start < 30000) {
+                java.net.http.HttpRequest statusReq = java.net.http.HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(base + "/api/momot/status"))
+                        .header("X-Session-ID", sid)
+                        .GET()
+                        .build();
+                java.net.http.HttpResponse<String> statusRes = client.send(statusReq, java.net.http.HttpResponse.BodyHandlers.ofString());
+                String statusBody = statusRes.body();
+
+                java.net.http.HttpRequest solsReq = java.net.http.HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(base + "/api/momot/solutions"))
+                        .header("X-Session-ID", sid)
+                        .GET()
+                        .build();
+                java.net.http.HttpResponse<String> solsRes = client.send(solsReq, java.net.http.HttpResponse.BodyHandlers.ofString());
+                String solsBody = solsRes.body();
+
+                System.out.println("[HTTP-TEST POLL] Status: " + statusBody + " | Sols: " + solsBody);
+                running = statusBody.contains("\"running\":true");
+                Thread.sleep(500);
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
 }

@@ -1470,13 +1470,22 @@
         }
     }
 
-    function finishMomotPolling(generation) {
+    function finishMomotPolling(generation, finalProgress) {
         if (generation !== pollGeneration) return;
         momotIsRunning = false;
         window.__momotIsRunning = false;
         if (pollInterval) {
             clearInterval(pollInterval);
             pollInterval = null;
+        }
+        if (finalProgress && typeof window.__momotSetProgress === 'function') {
+            window.__momotSetProgress(
+                finalProgress.totalRuns || finalProgress.run || 1,
+                finalProgress.totalRuns || 1,
+                finalProgress.totalGens || finalProgress.gen || 1,
+                finalProgress.totalGens || 1,
+                100.0
+            );
         }
         if (typeof window.__momotProgressDone === 'function') {
             window.__momotProgressDone();
@@ -1540,7 +1549,7 @@
                     if (finished || (seenRunning && !data.running)) {
                         momotIsRunning = false;
                         window.__momotIsRunning = false;
-                        finishMomotPolling(generation);
+                        finishMomotPolling(generation, data.progress);
                     }
                 }).catch(function(e) {
                     if (generation !== pollGeneration) return;
@@ -1554,7 +1563,7 @@
         }
 
         pollOnce();
-        pollInterval = setInterval(pollOnce, 1000);
+        pollInterval = setInterval(pollOnce, 250);
     }
 
     window.__blockyResetMomotSession = function() {

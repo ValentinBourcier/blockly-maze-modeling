@@ -635,10 +635,16 @@
                         renderProgress();
                     } catch(e) {}
                 };
-                window.__momotProgressDone = function() {
+                window.__momotProgressDone = function(cancelled) {
                     try {
                         if (progTimer) { clearInterval(progTimer); progTimer = null; }
-                        progEnded = true; renderProgress();
+                        progEnded = true;
+                        if (!cancelled && progLast) {
+                            progLast.pct = 100;
+                            if (progLast.runs) progLast.run = progLast.runs;
+                            if (progLast.gens) progLast.gen = progLast.gens;
+                        }
+                        renderProgress();
                     } catch(e) {}
                 };
 
@@ -673,12 +679,27 @@
                 }
                 window.__dbgDrawComparisonPath = __dbgDrawComparisonPath;
 
-                function renderSolutions(arr) {
+                function renderSolutions(data) {
                     try {
-                        if (arr === undefined || arr === null) {
-                            arr = window.__momotLastData || [];
-                        } else {
-                            window.__momotLastData = arr;
+                        var arr = [];
+                        if (Array.isArray(data)) {
+                            arr = data;
+                        } else if (data && typeof data === 'object' && Array.isArray(data.solutions)) {
+                            arr = data.solutions;
+                        } else if (data === undefined || data === null) {
+                            var cached = window.__momotLastData;
+                            if (Array.isArray(cached)) {
+                                arr = cached;
+                            } else if (cached && typeof cached === 'object' && Array.isArray(cached.solutions)) {
+                                arr = cached.solutions;
+                            } else {
+                                arr = [];
+                            }
+                        } else if (data && typeof data === 'object') {
+                            arr = data.solutions || [];
+                        }
+                        if (data !== undefined && data !== null) {
+                            window.__momotLastData = data;
                         }
                         var keepPath = window.__momotSelectedPath;
                         var keepScroll = list.scrollTop;
@@ -820,9 +841,9 @@
                         if (!bridge || !bridge.listMomotSolutions) { setStatus('Java bridge listMomotSolutions not available'); return; }
                         setStatus('Loading solutions...');
                         var txt = bridge.listMomotSolutions();
-                        var arr = [];
-                        try { arr = (typeof txt === 'string') ? JSON.parse(txt) : txt; } catch(e2) { arr = []; }
-                        renderSolutions(arr);
+                        var data = [];
+                        try { data = (typeof txt === 'string') ? JSON.parse(txt) : txt; } catch(e2) { data = []; }
+                        renderSolutions(data);
                     } catch(e) { setStatus('Refresh failed'); }
                 }
 

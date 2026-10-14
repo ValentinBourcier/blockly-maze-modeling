@@ -432,6 +432,39 @@ public final class MomotRunService {
                             if ("toString".equals(name)) {
                                 return "IParetoFrontSubscriberProxy[" + subscriber + "]";
                             }
+                            if ("onProgressUpdated".equals(name) && args != null && args.length == 4) {
+                                try {
+                                    for (java.lang.reflect.Method m : subscriber.getClass().getMethods()) {
+                                        if ("onProgressUpdated".equals(m.getName()) && m.getParameterCount() == 4) {
+                                            return m.invoke(subscriber, args[0], args[1], args[2], args[3]);
+                                        }
+                                    }
+                                } catch (Throwable ignored) {
+                                }
+                                if (subscriber instanceof java.util.function.BiConsumer bi) {
+                                    bi.accept(args[2], args[3]);
+                                    return null;
+                                }
+                                if (subscriber instanceof Runnable r) {
+                                    r.run();
+                                    return null;
+                                }
+                                if (subscriber instanceof java.util.function.Consumer c) {
+                                    c.accept(args[2]);
+                                    return null;
+                                }
+                                try {
+                                    java.lang.reflect.Method m = subscriber.getClass().getMethod("onParetoFrontUpdated", int.class, Object.class);
+                                    return m.invoke(subscriber, args[2], args[3]);
+                                } catch (Throwable t) {
+                                    for (java.lang.reflect.Method candidate : subscriber.getClass().getMethods()) {
+                                        if (candidate.getName().equals("onParetoFrontUpdated") && candidate.getParameterCount() == 2) {
+                                            return candidate.invoke(subscriber, args[2], args[3]);
+                                        }
+                                    }
+                                }
+                                return null;
+                            }
                             if ("onParetoFrontUpdated".equals(name) && args != null && args.length == 2) {
                                 if (subscriber instanceof java.util.function.BiConsumer bi) {
                                     bi.accept(args[0], args[1]);
