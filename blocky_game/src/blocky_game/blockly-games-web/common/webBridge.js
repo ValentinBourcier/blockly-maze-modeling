@@ -828,9 +828,22 @@
         }
     }
 
+    // maze-original.html sets BLOCKY_LIVE_PATH = false: path and memory/power readout are shown only after
+    // Run Program (levelTimer.js). Any edit clears the previous run's result.
+    function liveFeedbackOff() {
+        return window.BLOCKY_LIVE_PATH === false;
+    }
+
+    function clearRunResultOnEdit() {
+        if (!liveFeedbackOff()) return;
+        window.__runPathShown = false;
+        if (typeof window.__consumptionUpdate === 'function') window.__consumptionUpdate(-1, -1);
+    }
+
     // Asks the server for the consumption of the program it currently holds, without recording a run.
     // Used after a page or level load, so the readout does not stay "-" until the first edit.
     function refreshConsumption() {
+        if (liveFeedbackOff()) return;
         var info = getTimerSessionInfo();
         getSessionId(function(sid) {
             if (!sid) return;
@@ -954,7 +967,7 @@
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
                             window.__injectNewPath = data.newPath;
-                            if (typeof window.__consumptionUpdate === 'function') {
+                            if (!liveFeedbackOff() && typeof window.__consumptionUpdate === 'function') {
                                 window.__consumptionUpdate(data.memory, data.power);
                             }
                             if (typeof window.__ifRender === 'function') {
@@ -1043,6 +1056,7 @@
                     if (data && data.newPath) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
+                            window.__runPathShown = true; // Run Program: this is the explicit run (BLOCKY_LIVE_PATH)
                             window.__injectNewPath = data.newPath;
                             if (typeof window.__consumptionUpdate === 'function') {
                                 window.__consumptionUpdate(data.memory, data.power);
@@ -1703,6 +1717,7 @@
 
             if (xmlStr && xmlStr !== window.__lastObservedXml) {
                 window.__lastObservedXml = xmlStr;
+                clearRunResultOnEdit();
 
                 var sx = getStartX();
                 var sy = getStartY();
@@ -1733,6 +1748,7 @@
                 }
             } else if (!hasBlocks && window.__lastObservedXml && window.__lastObservedXml.indexOf('<block') >= 0) {
                 window.__lastObservedXml = xmlStr;
+                clearRunResultOnEdit();
                 window.__injectNewPath = [];
                 if (typeof window.__ifRender === 'function') {
                     window.__ifRender();

@@ -1103,6 +1103,7 @@
                     if (r.ok) return r.json();
                 }).then(function(data) {
                     if (data && data.newPath && typeof window.__ifRender === 'function') {
+                        window.__runPathShown = true; // see BLOCKY_LIVE_PATH in blockyUIOverlay.js
                         window.__injectNewPath = data.newPath;
                         window.__ifRender();
                     }

@@ -949,6 +949,8 @@
                         var oc = document.getElementById('dmCommon'); if (oc && oc.parentNode) oc.parentNode.removeChild(oc);
                     } else {
                         var next = window.__injectNewPath || [];
+                        // BLOCKY_LIVE_PATH === false (maze-original.html): draw only after Run Program
+                        if (window.BLOCKY_LIVE_PATH === false && !window.__runPathShown) next = [];
                         drawOverlay('ifNew', next, '#ff8c1a', 20, '10 6');
                         var op = document.getElementById('ifPast'); if (op && op.parentNode) op.parentNode.removeChild(op);
                         var oc2 = document.getElementById('ifCommon'); if (oc2 && oc2.parentNode) oc2.parentNode.removeChild(oc2);
