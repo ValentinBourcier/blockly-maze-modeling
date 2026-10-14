@@ -8,6 +8,8 @@
 
     var apiBase = '';
     var sessionId = null;
+    // The level the server session reports (from /api/session/state and every simulation run).
+    var serverLevelId = null;
     try {
         if (window.localStorage) {
             sessionId = window.localStorage.getItem('blocky_session_id');
@@ -66,6 +68,7 @@
         .then(function(data) {
             if (data && data.status === 'ok') {
                 console.log('[webBridge] Loaded session state:', data);
+                if (typeof data.levelId === 'number') serverLevelId = data.levelId;
 
                 var frontendK = (typeof window.K === 'number') ? window.K : 1;
                 var isSameLevel = (data.levelId === undefined || data.levelId === frontendK);
@@ -176,7 +179,10 @@
                     window.__injectNewPath = compressRemainingPositions(localDbg.states, 0);
                     window.__injectPastPath = [];
 
-                    syncCurrentLevelStateToBackend();
+                    syncCurrentLevelStateToBackend(refreshConsumption);
+                }
+                if (isSameLevel) {
+                    refreshConsumption();
                 }
 
                 // Ensure Pegman and Goal Pin are rendered at window.nd and window.od
@@ -810,6 +816,56 @@
         });
     }
 
+    // Remembers the level the server reported with a simulation run; a run for another level than the
+    // page's is ignored by the readout, so say so in the console.
+    function noteRunLevel(data) {
+        if (!data || typeof data.levelId !== 'number') return;
+        serverLevelId = data.levelId;
+        var pageLevel = (typeof window.K === 'number') ? window.K : 1;
+        if (data.levelId !== pageLevel) {
+            console.warn('[webBridge] simulation run is for server level ' + data.levelId
+                + ' but the page is on level ' + pageLevel + '; readout not updated');
+        }
+    }
+
+    // maze-original.html sets BLOCKY_LIVE_PATH = false: path and memory/power readout are shown only after
+    // Run Program (levelTimer.js). Any edit clears the previous run's result.
+    function liveFeedbackOff() {
+        return window.BLOCKY_LIVE_PATH === false;
+    }
+
+    function clearRunResultOnEdit() {
+        if (!liveFeedbackOff()) return;
+        window.__runPathShown = false;
+        if (typeof window.__consumptionUpdate === 'function') window.__consumptionUpdate(-1, -1);
+    }
+
+    // Asks the server for the consumption of the program it currently holds, without recording a run.
+    // Used after a page or level load, so the readout does not stay "-" until the first edit.
+    function refreshConsumption() {
+        if (liveFeedbackOff()) return;
+        var info = getTimerSessionInfo();
+        getSessionId(function(sid) {
+            if (!sid) return;
+            fetch(apiBase + '/api/simulation/run', {
+                method: 'POST',
+                headers: attachTimerHeaders({ 'Content-Type': 'application/json', 'X-Session-ID': sid }),
+                body: JSON.stringify({ timerSessionId: info.timerSessionId, level: info.level })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                noteRunLevel(data);
+                var frontendK = (typeof window.K === 'number') ? window.K : 1;
+                if (data && (data.levelId === undefined || data.levelId === frontendK)
+                        && typeof window.__consumptionUpdate === 'function') {
+                    window.__consumptionUpdate(data.memory, data.power);
+                }
+            })
+            .catch(function(e) { console.error('[webBridge] refreshConsumption error', e); });
+        });
+    }
+    window.__refreshConsumption = refreshConsumption;
+
     function syncCurrentLevelStateToBackend(callback) {
         var activeGrid = getActiveGrid();
         var frontendK = (typeof window.K === 'number') ? window.K : 1;
@@ -869,16 +925,29 @@
             var info = getTimerSessionInfo();
             getSessionId(function(sid) {
                 if (!sid) return;
-                fetch(apiBase + '/api/session/sync', {
-                    method: 'POST',
-                    headers: attachTimerHeaders({ 'Content-Type': 'application/json', 'X-Session-ID': sid }),
-                    body: JSON.stringify({
-                        xml: xml || '',
-                        allowEmpty: !!allowEmpty,
-                        epoch: epoch,
-                        timerSessionId: info.timerSessionId,
-                        level: info.level
+                // The server session may still hold another level (the level snapshot is sent once per page
+                // load, and can be skipped when window.K is not set yet). A program synced into the wrong
+                // level is simulated on the wrong map, so bring the server to this level first.
+                var pageLevel = (typeof window.K === 'number') ? window.K : 1;
+                var levelBehind = (serverLevelId !== null && serverLevelId !== pageLevel);
+                var levelReady = levelBehind
+                    ? new Promise(function(resolve) {
+                        serverLevelId = pageLevel;
+                        syncCurrentLevelStateToBackend(resolve);
                     })
+                    : Promise.resolve();
+                levelReady.then(function() {
+                    return fetch(apiBase + '/api/session/sync', {
+                        method: 'POST',
+                        headers: attachTimerHeaders({ 'Content-Type': 'application/json', 'X-Session-ID': sid }),
+                        body: JSON.stringify({
+                            xml: xml || '',
+                            allowEmpty: !!allowEmpty,
+                            epoch: epoch,
+                            timerSessionId: info.timerSessionId,
+                            level: info.level
+                        })
+                    });
                 })
                 .then(function() {
                     // Update simulation trace and immediate feedback path overlay
@@ -893,10 +962,14 @@
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    noteRunLevel(data);
                     if (data && data.newPath) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
                             window.__injectNewPath = data.newPath;
+                            if (!liveFeedbackOff() && typeof window.__consumptionUpdate === 'function') {
+                                window.__consumptionUpdate(data.memory, data.power);
+                            }
                             if (typeof window.__ifRender === 'function') {
                                 window.__ifRender();
                             }
@@ -983,7 +1056,11 @@
                     if (data && data.newPath) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
+                            window.__runPathShown = true; // Run Program: this is the explicit run (BLOCKY_LIVE_PATH)
                             window.__injectNewPath = data.newPath;
+                            if (typeof window.__consumptionUpdate === 'function') {
+                                window.__consumptionUpdate(data.memory, data.power);
+                            }
                             if (typeof window.__ifRender === 'function') {
                                 window.__ifRender();
                             }
@@ -1672,6 +1749,7 @@
 
             if (xmlStr && xmlStr !== window.__lastObservedXml) {
                 window.__lastObservedXml = xmlStr;
+                clearRunResultOnEdit();
 
                 var sx = getStartX();
                 var sy = getStartY();
@@ -1702,6 +1780,7 @@
                 }
             } else if (!hasBlocks && window.__lastObservedXml && window.__lastObservedXml.indexOf('<block') >= 0) {
                 window.__lastObservedXml = xmlStr;
+                clearRunResultOnEdit();
                 window.__injectNewPath = [];
                 if (typeof window.__ifRender === 'function') {
                     window.__ifRender();

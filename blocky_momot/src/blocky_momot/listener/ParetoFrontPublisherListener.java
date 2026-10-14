@@ -167,11 +167,12 @@ public class ParetoFrontPublisherListener extends AbstractProgressListener {
                         continue; // already looked at this solution object (elites stay in the population)
                     }
                     looked++;
-                    double[] display = displayObjectives(ts);
+                    // Measure the copy: its model is the one written to disk, so panel values match the file.
+                    TransformationSolution copy = ts.copy();
+                    double[] display = displayObjectives(copy);
                     if (display == null) {
                         continue;
                     }
-                    TransformationSolution copy = ts.copy();
                     copy.setObjectives(display);
                     copy.setAttribute(ATTRIBUTE_TIME_TO_FORM, elapsedMs);
                     copy.setAttribute(ATTRIBUTE_GENERATION_TO_FORM, generation);

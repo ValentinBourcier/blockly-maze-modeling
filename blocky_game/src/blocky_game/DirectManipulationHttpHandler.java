@@ -136,7 +136,19 @@ public class DirectManipulationHttpHandler {
                     if (i > 0) sb.append(",");
                     sb.append("\"").append(SearchHttpHandler.escapeJson(logs.get(i))).append("\"");
                 }
-                sb.append("],\"newPath\":").append(pathSb.toString()).append("}");
+                // Live consumption readout: same functions as the MoMoT objectives Blocks (memory) and
+                // Actions (power), but without the goal gate. Values >= 100000 are the "not available"
+                // penalty (the panel shows '-' for them), sent as -1.
+                int memory = -1;
+                int power = -1;
+                if (level != null) {
+                    memory = blocky_momot.BlockyProgramMetrics.countStatements(level.getSolution());
+                    power = blocky_momot.BlockySimulator.simulationSteps(level);
+                    if (memory >= 100000) memory = -1;
+                    if (power >= 100000) power = -1;
+                }
+                sb.append("],\"memory\":").append(memory).append(",\"power\":").append(power);
+                sb.append(",\"newPath\":").append(pathSb.toString()).append("}");
                 SearchHttpHandler.sendJson(exchange, 200, sb.toString());
             } catch (Exception e) {
                 e.printStackTrace();

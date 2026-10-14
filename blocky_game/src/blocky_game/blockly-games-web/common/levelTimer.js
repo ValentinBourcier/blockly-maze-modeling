@@ -1103,8 +1103,14 @@
                     if (r.ok) return r.json();
                 }).then(function(data) {
                     if (data && data.newPath && typeof window.__ifRender === 'function') {
+                        window.__runPathShown = true; // see BLOCKY_LIVE_PATH in blockyUIOverlay.js
                         window.__injectNewPath = data.newPath;
                         window.__ifRender();
+                    }
+                    // Run Program: keep the memory / power readout in step with the program that just ran.
+                    if (data && typeof window.__consumptionUpdate === 'function'
+                            && (data.levelId === undefined || data.levelId === level)) {
+                        window.__consumptionUpdate(data.memory, data.power);
                     }
                 }).catch(function(err) {});
             }

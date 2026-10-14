@@ -14,15 +14,21 @@ import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 
+import blocky.AtomicStatement;
+import blocky.AtomicStatementKind;
 import blocky.BlockyPackage;
 import blocky.Body;
 import blocky.Cell;
 import blocky.CellType;
+import blocky.Container;
 import blocky.Direction;
-import blocky.GameState;
 import blocky.GameStatus;
 import blocky.GridMap;
+import blocky.IfStmt;
 import blocky.Level;
+import blocky.Loop;
+import blocky.SensorDirection;
+import blocky.Statement;
 
 /**
  * Headless simulator for Blocky maze programs.
@@ -148,7 +154,126 @@ public final class BlockySimulator {
         if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return GameStatus.CRASHED;
         }
-        return SimulationEngine.simulate(level).getFinalStatus();
+        GameRun g = executeLikeGame(level, null);
+        if (g == null || g.crashed) {
+            return GameStatus.CRASHED;
+        }
+        return g.position.getType() == determineWinCellType(level) ? GameStatus.WON : GameStatus.RUNNING;
+    }
+
+    /** Outcome of one run with the game's semantics (see {@link #executeLikeGame}). */
+    private static final class GameRun {
+        Cell position;
+        Direction orientation;
+        int actions;
+        boolean crashed;
+        int minDistance = Integer.MAX_VALUE;
+    }
+
+    /**
+     * Executes the program exactly like the game's Blockly interpreter does:
+     * <ul>
+     * <li>the whole program runs; reaching the goal does not stop it, and the goal is judged by the final
+     * position (statements after the arrival are executed and counted, and may leave the goal again);</li>
+     * <li>an action is a move (including a failing one), a turn, or a path check of an if block;
+     * loop blocks themselves are not actions;</li>
+     * <li>a loop repeats while Pegman is not on the goal (maze_forever); a loop that makes no progress or runs
+     * longer than the step budget counts as a crash (the game's tick limit).</li>
+     * </ul>
+     * This is deliberately separate from {@link SimulationEngine}, which stops at the first arrival and counts
+     * every statement (the debugger trace).
+     *
+     * @param distanceField if not null, the minimum distance over all visited cells is tracked
+     * @return null if the level has no map or no start cell
+     */
+    private static GameRun executeLikeGame(Level level, Map<Cell, Integer> distanceField) {
+        if (level == null || level.getMap() == null) {
+            return null;
+        }
+        GridMap map = level.getMap();
+        Cell start = null;
+        for (Cell c : map.getCells()) {
+            if (c != null && c.getType() == CellType.START) {
+                start = c;
+                break;
+            }
+        }
+        if (start == null && !map.getCells().isEmpty()) {
+            start = map.getCells().get(0);
+        }
+        if (start == null) {
+            return null;
+        }
+        GameRun g = new GameRun();
+        g.position = start;
+        g.orientation = determineStartOrientation(level, start);
+        trackDistance(g, distanceField);
+        executeBodyLikeGame(level.getSolution(), g, determineWinCellType(level),
+                SimulationEngine.computeLoopLimit(map), distanceField);
+        return g;
+    }
+
+    private static void trackDistance(GameRun g, Map<Cell, Integer> distanceField) {
+        if (distanceField == null) return;
+        Integer d = distanceField.get(g.position);
+        if (d != null) g.minDistance = Math.min(g.minDistance, d);
+    }
+
+    private static void executeBodyLikeGame(Body body, GameRun g, CellType win, int maxActions,
+            Map<Cell, Integer> distanceField) {
+        if (body == null) return;
+        for (Container c = body.getFirstContainer(); c != null && !g.crashed; c = c.getNext()) {
+            Statement stmt = c.getStatement();
+            if (stmt instanceof AtomicStatement) {
+                applyAtomic((AtomicStatement) stmt, g);
+                trackDistance(g, distanceField);
+            } else if (stmt instanceof Loop) {
+                Body loopBody = ((Loop) stmt).getBody();
+                while (!g.crashed && g.position.getType() != win) {
+                    if (g.actions > maxActions) {
+                        g.crashed = true;
+                        break;
+                    }
+                    int before = g.actions;
+                    executeBodyLikeGame(loopBody, g, win, maxActions, distanceField);
+                    if (g.actions == before && !g.crashed) {
+                        g.crashed = true; // no progress: the game would run into its tick limit
+                    }
+                }
+            } else if (stmt instanceof IfStmt) {
+                IfStmt i = (IfStmt) stmt;
+                g.actions++; // the path check is logged as an action by the game
+                SensorDirection sensor = SimulationEngine.conditionKindToSensor(i.getCondition());
+                Cell target = SimulationEngine.getAdjacent(g.position,
+                        SimulationEngine.getRelativeDir(g.orientation, sensor));
+                boolean cond = target != null && target.getType() != CellType.WALL;
+                executeBodyLikeGame(cond ? i.getThenBody() : i.getElseBody(), g, win, maxActions, distanceField);
+            }
+        }
+    }
+
+    /** One move or turn; a missing kind behaves as TURN_LEFT (same default as SimulationEngine). */
+    private static void applyAtomic(AtomicStatement a, GameRun g) {
+        AtomicStatementKind kind = a.getKind() != null ? a.getKind() : AtomicStatementKind.TURN_LEFT;
+        g.actions++;
+        switch (kind) {
+        case MOVE_FORWARD: {
+            Cell target = SimulationEngine.getAdjacent(g.position, g.orientation);
+            if (target == null || target.getType() == CellType.WALL) {
+                g.crashed = true;
+            } else {
+                g.position = target;
+            }
+            break;
+        }
+        case TURN_RIGHT:
+            g.orientation = SimulationEngine.getRelativeDir(g.orientation, SensorDirection.RIGHT);
+            break;
+        case TURN_LEFT:
+        default:
+            g.orientation = SimulationEngine.getRelativeDir(g.orientation, SensorDirection.LEFT);
+            break;
+        }
     }
 
     /**
@@ -170,7 +295,8 @@ public final class BlockySimulator {
         if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return 100000;
         }
-        return SimulationEngine.simulate(level).getSteps();
+        GameRun g = executeLikeGame(level, null);
+        return g != null ? g.actions : 0;
     }
 
     /**
@@ -184,8 +310,9 @@ public final class BlockySimulator {
         if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return penalty;
         }
-        SimulationEngine.SimulationResult res = SimulationEngine.simulate(level);
-        return res.isWon() ? res.getSteps() : penalty;
+        GameRun g = executeLikeGame(level, null);
+        boolean won = g != null && !g.crashed && g.position.getType() == determineWinCellType(level);
+        return won ? g.actions : penalty;
     }
 
     /**
@@ -214,22 +341,14 @@ public final class BlockySimulator {
             return penalty;
         }
 
-        SimulationEngine.SimulationResult res = SimulationEngine.simulate(level);
-        int min = Integer.MAX_VALUE;
-        for (GameState s : res.getTrace().getStates()) {
-            if (s != null && s.getPosition() != null) {
-                Integer d = distanceField.get(s.getPosition());
-                if (d != null) {
-                    if (d < min) {
-                        min = d;
-                        if (min == 0) {
-                            break;
-                        }
-                    }
-                }
-            }
+        GameRun g = executeLikeGame(level, distanceField);
+        if (g == null || g.minDistance == Integer.MAX_VALUE) {
+            return penalty;
         }
-        return (min == Integer.MAX_VALUE) ? penalty : min;
+        // The game judges the goal by the final position: a run that passed over the goal but ended elsewhere
+        // has not reached it, so it is not reported as distance 0.
+        boolean onGoal = !g.crashed && g.position.getType() == winCellType;
+        return (g.minDistance == 0 && !onGoal) ? 1 : g.minDistance;
     }
 
     public static Map<Cell, Integer> computeDistanceField(GridMap map, CellType goalType) {

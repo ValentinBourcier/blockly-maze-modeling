@@ -181,8 +181,13 @@ class HttpSearchServerTest {
         HttpResponse<String> respOrig = client.send(reqOrig, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, respOrig.statusCode());
         assertTrue(respOrig.body().contains("common/boot.js"));
-        assertFalse(respOrig.body().contains("webBridge.js"));
-        assertFalse(respOrig.body().contains("blockyUIOverlay.js"));
+        // Same game and scripts as maze.html (live consumption readout), with MoMoT switched off.
+        assertTrue(respOrig.body().contains("webBridge.js"));
+        assertTrue(respOrig.body().contains("blockyUIOverlay.js"));
+        assertTrue(respOrig.body().contains("consumptionMeter.js"));
+        assertTrue(respOrig.body().contains("BLOCKY_MOMOT_ENABLED = false"));
+        assertTrue(respMomot.body().contains("consumptionMeter.js"));
+        assertFalse(respMomot.body().contains("BLOCKY_MOMOT_ENABLED"));
 
         // 4. Classic maze.html entry point
         HttpRequest reqClassic = HttpRequest.newBuilder()
@@ -202,7 +207,7 @@ class HttpSearchServerTest {
         HttpResponse<String> respOrigClean = client.send(reqOrigClean, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, respOrigClean.statusCode());
         assertTrue(respOrigClean.body().contains("common/boot.js"));
-        assertFalse(respOrigClean.body().contains("webBridge.js"));
+        assertTrue(respOrigClean.body().contains("webBridge.js"));
 
         // 6. Extensionless /maze-classic clean URL
         HttpRequest reqClassicClean = HttpRequest.newBuilder()
