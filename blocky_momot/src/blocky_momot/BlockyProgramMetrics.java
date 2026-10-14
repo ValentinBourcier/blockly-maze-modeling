@@ -104,6 +104,11 @@ public final class BlockyProgramMetrics {
                     count += countStatements(((IfStmt) s).getThenBody());
                     count += countStatements(((IfStmt) s).getElseBody());
                 }
+                if (s instanceof Loop) {
+                    // A loop is terminal in Blockly (maze_forever has no next connection): the game never
+                    // shows statements after it, so they are not counted. Keeps the panel equal to the game.
+                    break;
+                }
             }
             c = c.getNext();
         }

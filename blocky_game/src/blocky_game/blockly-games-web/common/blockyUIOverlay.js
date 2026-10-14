@@ -12,6 +12,12 @@
 (function() {
     console.log('[blockyUIOverlay] Initializing Web Application UI Overlays...');
 
+    // maze-original.html sets window.BLOCKY_MOMOT_ENABLED = false before loading this file: the page is the
+    // same game, but without the MoMoT panel, search and direct manipulation (which starts a search).
+    function __momotOn() {
+        return window.BLOCKY_MOMOT_ENABLED !== false;
+    }
+
     // ==========================================
     // 1. Level Loading Overlay
     // ==========================================
@@ -744,7 +750,7 @@
                             return th;
                         }
 
-                        var objNames = ['Goal Reached', 'Edits', 'Number of Actions', 'Closest to Goal', 'Number of Blocks'];
+                        var objNames = ['Goal Reached', 'Edits', 'Power consumption (in kW)', 'Closest to Goal', 'Memory consumption (in kB)'];
                         var displayCols = Math.max(maxObj, objNames.length);
                         for (var i=0; i<displayCols; i++) hRow.appendChild(mkTh(objNames[i] || ('Obj ' + (i+1)), i));
                         thead.appendChild(hRow); table.appendChild(thead);
@@ -974,7 +980,7 @@
         var id = setInterval(function() {
             try {
                 __execLogEnsure();
-                __momotEnsure();
+                if (__momotOn()) __momotEnsure();
                 setupImmediateFeedbackOverlay();
 
                 var runBtn = document.getElementById('runButton');
@@ -1007,7 +1013,7 @@
                         window.__uiWatchdog = setInterval(function() {
                             try {
                                 __execLogEnsure();
-                                __momotEnsure();
+                                if (__momotOn()) __momotEnsure();
                             } catch(e) {}
                         }, 1000);
                         if (window.__uiWatchdog && typeof window.__uiWatchdog.unref === 'function') window.__uiWatchdog.unref();
@@ -1284,6 +1290,7 @@
                     var debugSkipBtn = __dbgMkBtn('debugSkipEndButton', 'Skip End', 'Jump to final outcome');
                     var directManipBtn = __dbgMkBtn('directManipulationButton', 'Direct Manipulation', 'Teleport pegman to an empty/goal cell (paused or before run)');
                     directManipBtn.style.marginLeft = '8px';
+                    if (!__momotOn()) directManipBtn.style.display = 'none';
                     var execLogToggleBtn = __dbgMkBtn('execLogTogglePanelButton', 'Execution Log', 'Show or hide Execution Log panel');
                     execLogToggleBtn.style.marginLeft = '8px';
 
@@ -1402,6 +1409,7 @@
                                     var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
 
                                     function doPlacementAndStart() {
+                                        if (!__momotOn()) return;
                                         var pPlacement = null;
                                         try {
                                             if (bridge && bridge.teleportPegman) {

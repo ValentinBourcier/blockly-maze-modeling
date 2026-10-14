@@ -856,7 +856,7 @@ public class BlockyUI extends Application {
                 + "              }); "
                 + "              return th; "
                 + "            } "
-                + "            var objNames = ['Goal Reached', 'Edits', 'Number of Actions', 'Closest to Goal', 'Number of Blocks']; "
+                + "            var objNames = ['Goal Reached', 'Edits', 'Power consumption (in kW)', 'Closest to Goal', 'Memory consumption (in kB)']; "
                 + "            var displayCols = Math.max(maxObj, objNames.length); "
                 + "            for (var i=0; i<displayCols; i++) hRow.appendChild(mkTh(objNames[i] || ('Obj ' + (i+1)), i)); "
                 + "            hRow.appendChild(mkTh('Time (s)', 998)); "
