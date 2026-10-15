@@ -98,6 +98,25 @@ class HttpSearchServerTest {
         HttpResponse<String> respSim = client.send(reqSim, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, respSim.statusCode());
         assertTrue(respSim.body().contains("\"status\":\"ok\""));
+
+        int memory = SearchHttpHandler.parseJsonIntField(respSim.body(), "memory", -1);
+        int power = SearchHttpHandler.parseJsonIntField(respSim.body(), "power", -1);
+        assertTrue(memory >= 0, "memory should be non-negative, got: " + memory);
+        assertTrue(power >= 0, "power should be non-negative, got: " + power);
+
+        // Test POSTing XML directly to simulation/run
+        HttpRequest reqSimXml = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/simulation/run"))
+                .header("Content-Type", "application/json")
+                .header("X-Session-ID", sid)
+                .POST(HttpRequest.BodyPublishers.ofString("{\"xml\":\"" + sampleXml.replace("\"", "\\\"") + "\"}"))
+                .build();
+        HttpResponse<String> respSimXml = client.send(reqSimXml, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respSimXml.statusCode());
+        int memoryXml = SearchHttpHandler.parseJsonIntField(respSimXml.body(), "memory", -1);
+        int powerXml = SearchHttpHandler.parseJsonIntField(respSimXml.body(), "power", -1);
+        assertTrue(memoryXml >= 0, "memory from posted XML should be non-negative, got: " + memoryXml);
+        assertTrue(powerXml >= 0, "power from posted XML should be non-negative, got: " + powerXml);
     }
 
     @Test
@@ -626,5 +645,100 @@ class HttpSearchServerTest {
         String jsonBody = exportJsonResp.body();
         assertTrue(jsonBody.contains("\"events\":"));
         assertTrue(jsonBody.contains("\"type\": \"program_run\""));
+    }
+
+    @Test
+    void testMomotLoadIncrementsSolutionsLoadedAndLogsEvent() throws Exception {
+        String sid = "test_momot_load_" + System.currentTimeMillis();
+
+        // Initialize session level-time
+        String initJson = "{\"sessionId\":\"" + sid + "\",\"userId\":\"momot_tester\",\"variant\":\"momot\",\"level\":1,\"elapsedMs\":5000}";
+        HttpRequest reqInit = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/level-time"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(initJson))
+                .build();
+        HttpResponse<String> respInit = client.send(reqInit, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respInit.statusCode());
+
+        // Create temporary EMF Level XMI file from valid input level
+        java.io.File tempXmi = java.io.File.createTempFile("test_solution", ".xmi");
+        tempXmi.deleteOnExit();
+        java.nio.file.Files.copy(new java.io.File("model/input/1.xmi").toPath(), tempXmi.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        // Call /api/momot/load
+        String loadJson = "{\"modelPath\":\"" + tempXmi.getAbsolutePath().replace("\\", "/") + "\",\"timerSessionId\":\"" + sid + "\",\"level\":1}";
+        HttpRequest reqLoad = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/momot/load"))
+                .header("Content-Type", "application/json")
+                .header("X-Timer-Session-ID", sid)
+                .header("X-Level-ID", "1")
+                .POST(HttpRequest.BodyPublishers.ofString(loadJson))
+                .build();
+        HttpResponse<String> respLoad = client.send(reqLoad, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respLoad.statusCode());
+        assertTrue(respLoad.body().contains("\"status\":\"ok\""));
+
+        // Query level-time to verify solutionsLoaded is 1
+        HttpRequest reqCheck = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/level-time?sessionId=" + sid))
+                .GET()
+                .build();
+        HttpResponse<String> respCheck = client.send(reqCheck, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respCheck.statusCode());
+        assertTrue(respCheck.body().contains("\"solutionsLoaded\":1"));
+
+        // Verify admin sessions contains totalSolutionsLoaded and candidate_exploration event
+        HttpRequest loginReq = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/admin/login"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"password\":\"" + TEST_ADMIN_PASSWORD + "\"}"))
+                .build();
+        HttpResponse<String> loginResp = client.send(loginReq, HttpResponse.BodyHandlers.ofString());
+        String token = loginResp.body().replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
+
+        HttpRequest adminReq = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/admin/sessions?q=" + sid))
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+        HttpResponse<String> adminResp = client.send(adminReq, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, adminResp.statusCode());
+        String adminBody = adminResp.body();
+        assertTrue(adminBody.contains("\"totalSolutionsLoaded\":1"));
+        assertTrue(adminBody.contains("\"candidate_exploration\""));
+    }
+
+    @Test
+    void testRunPostedWithDifferentLevelAndNoMapDoesNotReportGoalReached() throws Exception {
+        HttpRequest reqNew = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/session/new"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> respNew = client.send(reqNew, HttpResponse.BodyHandlers.ofString());
+        String sid = respNew.body().replaceAll(".*\"sessionId\":\"([^\"]+)\".*", "$1");
+
+        String level1Xml = "<xml><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"></block></next></block></xml>";
+        HttpRequest reqRun1 = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/simulation/run"))
+                .header("Content-Type", "application/json")
+                .header("X-Session-ID", sid)
+                .header("X-Level-ID", "1")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"level\":1,\"xml\":\"" + level1Xml.replace("\"", "\\\"") + "\"}"))
+                .build();
+        HttpResponse<String> respRun1 = client.send(reqRun1, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respRun1.statusCode());
+        assertTrue(respRun1.body().contains("\"goalReached\":true"), "Level 1 run should reach goal: " + respRun1.body());
+
+        HttpRequest reqRun2 = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/simulation/run"))
+                .header("Content-Type", "application/json")
+                .header("X-Session-ID", sid)
+                .header("X-Level-ID", "2")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"level\":2,\"xml\":\"" + level1Xml.replace("\"", "\\\"") + "\"}"))
+                .build();
+        HttpResponse<String> respRun2 = client.send(reqRun2, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, respRun2.statusCode());
+        assertTrue(respRun2.body().contains("\"goalReached\":false"), "Run posted with mismatched levelId and no map must not report goalReached: true, got: " + respRun2.body());
     }
 }

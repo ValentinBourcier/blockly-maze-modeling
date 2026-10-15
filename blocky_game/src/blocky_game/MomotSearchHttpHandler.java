@@ -246,6 +246,9 @@ public class MomotSearchHttpHandler {
 
             if (ok && telemetry != null) {
                 String timerSid = SearchHttpHandler.extractTimerSessionId(exchange, body);
+                if (timerSid == null || timerSid.trim().isEmpty()) {
+                    timerSid = SearchHttpHandler.extractSessionId(exchange, body);
+                }
                 int timerLevelId = SearchHttpHandler.extractLevelId(exchange, body, session);
                 telemetry.recordActivity(timerSid, timerLevelId, TelemetryService.ActivityType.SOLUTION_LOAD);
 

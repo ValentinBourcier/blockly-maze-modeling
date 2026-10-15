@@ -400,6 +400,14 @@ public class SessionContext {
         if (modelPath == null || modelPath.trim().isEmpty()) return false;
         try {
             File f = new File(modelPath.trim());
+            if (!f.exists() && momotCurrentOutputDir != null) {
+                File inDir = new File(momotCurrentOutputDir, modelPath.trim());
+                if (inDir.exists()) f = inDir;
+            }
+            if (!f.exists() && sessionDir != null) {
+                File inSess = new File(sessionDir, modelPath.trim());
+                if (inSess.exists()) f = inSess;
+            }
             if (!f.exists()) return false;
             engine.loadFromFile(f);
             return true;

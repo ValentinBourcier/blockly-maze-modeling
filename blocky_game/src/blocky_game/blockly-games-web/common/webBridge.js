@@ -963,11 +963,15 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     noteRunLevel(data);
-                    if (data && data.newPath) {
+                    if (data) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
-                            window.__injectNewPath = data.newPath;
-                            if (!liveFeedbackOff() && typeof window.__consumptionUpdate === 'function') {
+                            if (data.newPath) {
+                                window.__injectNewPath = data.newPath;
+                            }
+                            if (typeof data.memory === 'number' && data.memory >= 0 &&
+                                typeof data.power === 'number' && data.power >= 0 &&
+                                !liveFeedbackOff() && typeof window.__consumptionUpdate === 'function') {
                                 window.__consumptionUpdate(data.memory, data.power);
                             }
                             if (typeof window.__ifRender === 'function') {
@@ -1053,12 +1057,19 @@
                     if (!localDbg.active && data && data.logs && window.__execLogAppend) {
                         window.__execLogAppend(data.logs);
                     }
-                    if (data && data.newPath) {
+                    if (data) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
-                            window.__runPathShown = true; // Run Program: this is the explicit run (BLOCKY_LIVE_PATH)
-                            window.__injectNewPath = data.newPath;
-                            if (typeof window.__consumptionUpdate === 'function') {
+                            if (data.newPath) {
+                                window.__runPathShown = true; // Run Program: this is the explicit run (BLOCKY_LIVE_PATH)
+                                window.__injectNewPath = data.newPath;
+                            }
+                            if (typeof window.__lastObservedXml !== 'undefined') {
+                                window.__lastObservedXml = getCurrentWorkspaceXml();
+                            }
+                            if (typeof data.memory === 'number' && data.memory >= 0 &&
+                                typeof data.power === 'number' && data.power >= 0 &&
+                                typeof window.__consumptionUpdate === 'function') {
                                 window.__consumptionUpdate(data.memory, data.power);
                             }
                             if (typeof window.__ifRender === 'function') {
@@ -1697,6 +1708,7 @@
             console.error('[webBridge] Error injecting solution XML:', e2);
         }
     }
+    window.applyXmlToWorkspace = applyXmlToWorkspace;
 
     function getCurrentWorkspaceXml() {
         try {
@@ -1823,6 +1835,17 @@
     if (syncTimer && typeof syncTimer.unref === 'function') {
         syncTimer.unref();
     }
+
+    window.__webBridgeCleanup = function() {
+        if (syncTimer) {
+            clearInterval(syncTimer);
+            syncTimer = null;
+        }
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    };
 
     try {
         var ws = (window.BlocklyInterface && window.BlocklyInterface.getWorkspace && window.BlocklyInterface.getWorkspace()) ||

@@ -70,6 +70,9 @@ describe('webBridge.js Test Suite', () => {
     });
 
     afterEach(() => {
+        if (window && window.__webBridgeCleanup) {
+            try { window.__webBridgeCleanup(); } catch (e) {}
+        }
         if (dom && dom.window) {
             dom.window.close();
         }

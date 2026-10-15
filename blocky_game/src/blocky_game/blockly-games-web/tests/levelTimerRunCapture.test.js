@@ -173,7 +173,7 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         assert.strictEqual(span10.getAttribute('href'), null, 'level10 should have no href');
     });
 
-    it('suppresses goal win dialog and skip dialog, showing non-blocking goal note on timer widget', () => {
+    it('suppresses goal win dialog and skip dialog without marking solved or showing note', () => {
         window.BlocklyDialogs = {
             Xy: () => { throw new Error('Original win dialog should not be called'); },
             Zs: () => { throw new Error('Original skip dialog should not be called'); },
@@ -187,12 +187,16 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         window.eval(timerScript);
 
         const goalNote = window.document.getElementById('timerGoalNote');
+        const nextBtn = window.document.getElementById('timerNextTaskBtn');
         assert.ok(goalNote, 'Goal note element should exist in timer widget');
-        assert.strictEqual(goalNote.style.display, '', 'Goal note initially hidden (default css display)');
+        assert.strictEqual(goalNote.style.display, 'none', 'Goal note should be hidden when unsolved');
+        assert.strictEqual(nextBtn.disabled, true, 'Next button should be disabled when unsolved');
 
-        // Simulate goal reached trigger
+        // Simulate Xy trigger (animation finished)
         window.BlocklyDialogs.Xy();
-        assert.strictEqual(goalNote.style.display, 'inline-block', 'Goal note should be visible after reaching goal');
+        assert.strictEqual(goalNote.style.display, 'none', 'Xy call must NOT show goal note');
+        assert.strictEqual(nextBtn.disabled, true, 'Xy call must NOT enable Next button');
+        assert.strictEqual(window.__levelTimerIsLevelSolved(3), false, 'Xy call must NOT mark level solved');
 
         // Calling Um and Zs should be safe no-ops
         assert.doesNotThrow(() => {
@@ -213,10 +217,113 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         window.BlocklyDialogs = dialogs;
         dialogs.Xy = () => { throw new Error('Later Xy overwrite must not open the dialog'); };
         assert.doesNotThrow(() => dialogs.Xy());
-        assert.strictEqual(goalNote.style.display, 'inline-block');
+        assert.strictEqual(goalNote.style.display, 'none');
     });
 
-    it('provides Next task button on levels 1-9 that confirms before incrementing stored level', () => {
+    it('gates Next task button on maze-original as well until level is solved', () => {
+        const origDom = new JSDOM('<!DOCTYPE html><html><body><button id="runButton">Run Program</button></body></html>', {
+            url: 'http://localhost/maze-original.html?level=3',
+            runScripts: 'dangerously'
+        });
+        const origWin = origDom.window;
+        global.window = origWin;
+        global.document = origWin.document;
+        global.sessionStorage = origWin.sessionStorage;
+        global.localStorage = origWin.localStorage;
+
+        origWin.sessionStorage.setItem('blocky_level_timer_session_id', 'test_sess_orig');
+        origWin.sessionStorage.setItem('blocky_level_timer_user_id', 'alice');
+        origWin.sessionStorage.setItem('blocky_level_timer_current_level', '3');
+
+        const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
+        origWin.eval(timerScript);
+
+        const nextBtn = origWin.document.getElementById('timerNextTaskBtn');
+        assert.ok(nextBtn, 'Next task button should exist on maze-original');
+        assert.strictEqual(nextBtn.disabled, true, 'Next task button should be disabled on maze-original before goal reach');
+
+        if (origWin.__levelTimerCleanup) origWin.__levelTimerCleanup();
+        origDom.window.close();
+    });
+
+    it('only marks level solved when run response has goalReached: true and matching levelId', async () => {
+        const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
+        window.eval(timerScript);
+
+        const goalNote = window.document.getElementById('timerGoalNote');
+        const nextBtn = window.document.getElementById('timerNextTaskBtn');
+        assert.strictEqual(goalNote.style.display, 'none');
+        assert.strictEqual(nextBtn.disabled, true);
+
+        // 1. Run response with goalReached: true for wrong levelId (levelId: 2 when on level 3)
+        window.fetch = async (url) => {
+            if (url.includes('/api/simulation/run')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ status: 'ok', goalReached: true, levelId: 2 })
+                };
+            }
+            return { ok: true, status: 200, json: async () => ({ status: 'ok' }) };
+        };
+
+        const runBtn = window.document.getElementById('runButton');
+        runBtn.click();
+        await new Promise(r => setTimeout(r, 50));
+
+        assert.strictEqual(window.__levelTimerIsLevelSolved(3), false, 'Mismatched levelId in goalReached response must not solve level 3');
+        assert.strictEqual(goalNote.style.display, 'none');
+        assert.strictEqual(nextBtn.disabled, true);
+
+        // 2. Run response with goalReached: true for matching levelId (levelId: 3)
+        window.fetch = async (url) => {
+            if (url.includes('/api/simulation/run')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ status: 'ok', goalReached: true, levelId: 3 })
+                };
+            }
+            return { ok: true, status: 200, json: async () => ({ status: 'ok' }) };
+        };
+
+        runBtn.click();
+        await new Promise(r => setTimeout(r, 50));
+
+        assert.strictEqual(window.__levelTimerIsLevelSolved(3), true, 'Matching levelId in goalReached response must solve level 3');
+        assert.strictEqual(goalNote.style.display, 'inline-block');
+        assert.strictEqual(nextBtn.disabled, false);
+    });
+
+    it('clears all solved flags, all levels completed flag, and scoreboard storage on New Session', () => {
+        const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
+        window.eval(timerScript);
+
+        window.__levelTimerMarkLevelSolved(3);
+        window.sessionStorage.setItem('blocky_all_levels_completed', 'true');
+        for (let l = 1; l <= 10; l++) {
+            window.sessionStorage.setItem('blocky_scoreboard_lvl_' + l, JSON.stringify([{ id: 1, memory: 2, power: 2 }]));
+        }
+        assert.strictEqual(window.__levelTimerIsLevelSolved(3), true);
+        assert.ok(window.sessionStorage.getItem('blocky_scoreboard_lvl_1'));
+        assert.ok(window.sessionStorage.getItem('blocky_scoreboard_lvl_10'));
+
+        const newSessBtn = window.document.getElementById('timerNewSessionBtn');
+        assert.ok(newSessBtn);
+        newSessBtn.click();
+
+        const submitBtn = window.document.getElementById('levelTimerModalSubmit');
+        assert.ok(submitBtn);
+        submitBtn.click();
+
+        assert.strictEqual(window.sessionStorage.getItem('blocky_solved_level_3'), null, 'New session must clear level solved flag');
+        assert.strictEqual(window.sessionStorage.getItem('blocky_all_levels_completed'), null, 'New session must clear all levels completed flag');
+        for (let l = 1; l <= 10; l++) {
+            assert.strictEqual(window.sessionStorage.getItem('blocky_scoreboard_lvl_' + l), null, 'New session must clear blocky_scoreboard_lvl_' + l);
+        }
+    });
+
+    it('gates Next task button until level is solved, then confirms before advancing', () => {
         let navigatedUrl = null;
         window.__levelTimerNavigate = (url) => { navigatedUrl = url; };
 
@@ -225,15 +332,21 @@ describe('Level Timer and Activity Headers Test Suite', () => {
 
         const nextBtn = window.document.getElementById('timerNextTaskBtn');
         assert.ok(nextBtn, 'Next task button should exist on level 3');
-        assert.strictEqual(nextBtn.textContent, 'Next task');
+        assert.strictEqual(nextBtn.disabled, true, 'Next task button should initially be disabled on level 3 before goal reach');
 
-        const finishBtn = window.document.getElementById('timerFinishSessionBtn');
-        assert.strictEqual(finishBtn, null, 'Finish task button should not exist on level 3');
+        // Click when disabled should show toast and not open confirm modal
+        nextBtn.click();
+        let confirmModal = window.document.getElementById('levelTimerConfirmModal');
+        assert.strictEqual(confirmModal, null, 'Confirm modal should not open when level is unsolved');
 
-        // First click must show the dialog and must not change the stored level or navigate
+        // Solve the level
+        window.__levelTimerMarkLevelSolved(3);
+        assert.strictEqual(nextBtn.disabled, false, 'Next task button should be enabled after level is solved');
+
+        // Now clicking next task shows confirm modal
         nextBtn.click();
 
-        const confirmModal = window.document.getElementById('levelTimerConfirmModal');
+        confirmModal = window.document.getElementById('levelTimerConfirmModal');
         assert.ok(confirmModal, 'Confirm modal should exist');
         assert.strictEqual(confirmModal.style.display, 'flex', 'Confirm modal should be visible');
         assert.ok(confirmModal.textContent.includes('Go to the next task?'));
@@ -267,6 +380,9 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
         window.eval(timerScript);
 
+        // Mark level 3 solved so Next task is active
+        window.__levelTimerMarkLevelSolved(3);
+
         const nextBtn = window.document.getElementById('timerNextTaskBtn');
         assert.ok(nextBtn);
         nextBtn.click();
@@ -281,6 +397,9 @@ describe('Level Timer and Activity Headers Test Suite', () => {
 
         const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
         window.eval(timerScript);
+
+        // Mark level 3 solved
+        window.__levelTimerMarkLevelSolved(3);
 
         const nextBtn = window.document.getElementById('timerNextTaskBtn');
         nextBtn.click();
@@ -388,5 +507,37 @@ describe('Level Timer and Activity Headers Test Suite', () => {
 
         if (freshWin.__levelTimerCleanup) freshWin.__levelTimerCleanup();
         freshDom.window.close();
+    });
+
+    it('marks all levels completed when level 10 is solved, displaying completion modal and unlocking free navigation', () => {
+        const dom10 = new JSDOM('<!DOCTYPE html><html><body><div id="blockly"></div></body></html>', {
+            url: 'http://localhost/?level=10',
+            runScripts: 'dangerously'
+        });
+        const win10 = dom10.window;
+        global.window = win10;
+        global.document = win10.document;
+        global.sessionStorage = win10.sessionStorage;
+        global.localStorage = win10.localStorage;
+
+        win10.sessionStorage.setItem('blocky_level_timer_session_id', 'test_sess_10_all');
+        win10.sessionStorage.setItem('blocky_level_timer_user_id', 'charlie');
+        win10.sessionStorage.setItem('blocky_level_timer_current_level', '10');
+
+        const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
+        win10.eval(timerScript);
+
+        // Solve level 10
+        win10.__levelTimerMarkLevelSolved(10);
+
+        assert.strictEqual(win10.sessionStorage.getItem('blocky_all_levels_completed'), 'true');
+        assert.strictEqual(win10.__levelTimerIsAllLevelsCompleted(), true);
+
+        const modal = win10.document.getElementById('allLevelsCompletedModal');
+        assert.ok(modal, 'Completion modal should exist');
+        assert.strictEqual(modal.style.display, 'flex');
+
+        if (win10.__levelTimerCleanup) win10.__levelTimerCleanup();
+        dom10.window.close();
     });
 });
