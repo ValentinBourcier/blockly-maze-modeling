@@ -36,7 +36,7 @@ python tools/ground-truth-analysis/run.py check-models --level N ... [--sessions
 | `check-rules` | skipping useless programs (below) keeps the same best trade-offs: `same front, ok` |
 | `check-models` | every goal-reaching participant model up to 5 blocks is generated, with the same values as the replay: 0 different |
 
-Passed on levels 5–7. *Levels 8–10: not yet run.*
+Passed on levels 5–10 (`check-sim` and `check-models` up to 5 blocks, `check-rules` up to 6 blocks).
 
 **4. Build the tables** (once per level and limit).
 ```
@@ -44,7 +44,7 @@ python tools/ground-truth-analysis/run.py search --level N --max-blocks B
 ```
 Tries every program up to B blocks; writes `output/level{N}_b{B}.csv`: every reached (`blocks`, `actions`) pair with an `example_program`, `front` = best trade-off, `confirmed_by_BlockySimulator` (must be `yes`). A table also limited to A actions is named `level{N}_b{B}_a{A}.csv`. Tables depend only on the level, so they stay valid for new data.
 
-Built: levels 5, 6, 7 at 5 blocks. Level 5 is complete (A_min is reached with 5 blocks, so no larger program can be optimal). *Levels 8–10: not yet built.*
+Built: level 5 up to 6 blocks, levels 6–10 up to 8 blocks. Levels 5 and 9 are complete (A_min is reached with 5 and 8 blocks, so no larger program can be optimal). Time per level: 7 blocks about 1.5 s (2.9 million programs), 8 blocks about 30 s (53 million), plus about 5 s start-up; each extra block multiplies the cost by about 18.
 
 **5. Label the models** *(not yet implemented)* (after every step 1).
 ```
