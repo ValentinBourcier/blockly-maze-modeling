@@ -288,8 +288,8 @@
         thead.innerHTML = '<tr style="border-bottom: 1px solid rgba(255,255,255,0.2); color: #aaa;">' +
             '<th style="padding: 4px 6px;">#</th>' +
             '<th style="padding: 4px 6px;">Goal Reached</th>' +
-            '<th style="padding: 4px 6px;">Memory</th>' +
-            '<th style="padding: 4px 6px;">Power</th>' +
+            '<th style="padding: 4px 6px; color: #f59e0b;">Power (kW)</th>' +
+            '<th style="padding: 4px 6px; color: #38bdf8;">Memory (kB)</th>' +
             '<th style="padding: 4px 6px; text-align: center;">Action</th>' +
             '</tr>';
         table.appendChild(thead);
@@ -405,8 +405,8 @@
             tr.innerHTML =
                 '<td style="padding: 6px;">#' + run.id + '</td>' +
                 '<td style="padding: 6px;">' + goalBadge + '</td>' +
-                '<td style="padding: 6px;">' + formatDisplayVal(run.memory, 'kB') + '</td>' +
-                '<td style="padding: 6px;">' + formatDisplayVal(run.power, 'kW') + '</td>' +
+                '<td style="padding: 6px; color: #f59e0b;">' + formatDisplayVal(run.power, 'kW') + '</td>' +
+                '<td style="padding: 6px; color: #38bdf8;">' + formatDisplayVal(run.memory, 'kB') + '</td>' +
                 '<td style="padding: 6px; text-align: center;">' +
                 '  <button type="button" class="scoreboard-load-btn" data-id="' + run.id + '" style="background: #1f6feb; border: none; color: #fff; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">Load</button>' +
                 '</td>';

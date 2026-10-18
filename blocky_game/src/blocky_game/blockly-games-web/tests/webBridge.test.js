@@ -482,4 +482,35 @@ describe('webBridge.js Test Suite', () => {
         window.__updateWorkspaceAndTrace();
         assert.strictEqual(window.__runPathShown, false, 'Modifying program structure must clear __runPathShown on maze-original');
     });
+
+    it('loadMomotSolution detects unchanged blocks on embedded maze using h.K.qn and h.K.Mc', async () => {
+        let statusSet = null;
+        window.__momotSetStatus = (msg) => { statusSet = msg; };
+
+        const testXml = '<xml><block type="maze_moveForward" id="x1" x="10" y="20"></block></xml>';
+        window.h = {
+            K: {
+                qn: () => ({}),
+                Mc: () => testXml
+            }
+        };
+
+        window.fetch = async (url) => {
+            if (url.includes('/api/momot/load')) {
+                return {
+                    json: async () => ({
+                        status: 'ok',
+                        xml: '<xml><block type="maze_moveForward" id="diffId" x="50" y="80"></block></xml>',
+                        modelName: 'level9_sol_1.xmi'
+                    })
+                };
+            }
+            return { json: async () => ({ status: 'ok' }) };
+        };
+
+        window.javaBridge.loadMomotSolution('models/level9_sol_1.xmi');
+        await new Promise(r => setTimeout(r, 60));
+
+        assert.strictEqual(statusSet, 'Loaded level9_sol_1.xmi (blocks unchanged)', 'Status should report blocks unchanged using h.K.qn/Mc serialization');
+    });
 });

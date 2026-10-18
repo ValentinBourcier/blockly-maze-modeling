@@ -1259,6 +1259,12 @@
 
         loadMomotSolution: function(modelPath) {
             var info = getTimerSessionInfo();
+            window.__momotWebLoadSeq = (window.__momotWebLoadSeq || 0) + 1;
+            var thisReqId = window.__momotWebLoadSeq;
+            var modelName = (modelPath || '').split(/[\/\\]/).pop();
+            if (typeof window.__momotSetStatus === 'function') {
+                window.__momotSetStatus('Loading ' + modelName + '...');
+            }
             getSessionId(function(sid) {
                 if (!sid) {
                     if (typeof window.__momotSetStatus === 'function') {
@@ -1276,6 +1282,9 @@
                     })
                 }).then(function(r) { return r.json(); })
                 .then(function(data) {
+                    if (thisReqId !== window.__momotWebLoadSeq) {
+                        return;
+                    }
                     if (data && data.status === 'ok') {
                         if (data.levelId !== undefined) {
                             window.K = data.levelId;
@@ -1300,23 +1309,47 @@
                         if (typeof window.$d === 'function') {
                             try { window.$d(false); } catch(eD) {}
                         }
+                        var unchanged = false;
                         if (data.xml) {
+                            var curXml = '';
+                            try {
+                                var ws = (window.BlocklyInterface && window.BlocklyInterface.getWorkspace && window.BlocklyInterface.getWorkspace()) ||
+                                         (window.Blockly && (window.Blockly.getMainWorkspace && window.Blockly.getMainWorkspace() || window.Blockly.mainWorkspace));
+                                var bK = (window.h && window.h.K) || (window.Blockly && window.Blockly.Xml);
+                                if (window.h && window.h.K && typeof window.h.K.qn === 'function' && typeof window.h.K.Mc === 'function') {
+                                    curXml = window.h.K.Mc(window.h.K.qn(ws));
+                                } else if (ws && bK) {
+                                    var dom = (typeof bK.workspaceToDom === 'function') ? bK.workspaceToDom(ws) :
+                                              (window.Blockly && window.Blockly.Xml && typeof window.Blockly.Xml.workspaceToDom === 'function' ? window.Blockly.Xml.workspaceToDom(ws) :
+                                              (window.h && window.h.K && typeof window.h.K.lf === 'function' ? window.h.K.lf(ws) : null));
+                                    if (dom) {
+                                        curXml = (typeof bK.domToText === 'function') ? bK.domToText(dom) : (new XMLSerializer().serializeToString(dom));
+                                    }
+                                }
+                            } catch(eX) {}
+                            function norm(s) {
+                                if (typeof stripBlockPositionsAndIds === 'function') return stripBlockPositionsAndIds(s);
+                                return (s || '').replace(/<[^>]+>/g, function(tag) {
+                                    return tag.replace(/\s+(?:x|y|id)\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+                                }).replace(/>\s+</g, '><').replace(/\s+/g, ' ').trim();
+                            }
+                            unchanged = !!(curXml && data.xml && norm(curXml) === norm(data.xml));
                             applyXmlToWorkspace(data.xml);
                         }
                         if (typeof window.__momotSetStatus === 'function') {
-                            var modelName = (modelPath || '').split(/[\/\\]/).pop();
-                            window.__momotSetStatus('Loaded: ' + modelName);
+                            window.__momotSetStatus('Loaded ' + modelName + (unchanged ? ' (blocks unchanged)' : ''));
                         }
                     } else {
                         if (typeof window.__momotSetStatus === 'function') {
-                            window.__momotSetStatus('Failed to load model from server.');
+                            window.__momotSetStatus('Solution model file no longer exists: ' + modelName);
                         }
                     }
                 })
                 .catch(function(e) {
+                    if (thisReqId !== window.__momotWebLoadSeq) return;
                     console.error('[webBridge] loadMomotSolution error', e);
                     if (typeof window.__momotSetStatus === 'function') {
-                        window.__momotSetStatus('Load failed: ' + e);
+                        window.__momotSetStatus('Solution model file no longer exists: ' + modelName);
                     }
                 });
             });

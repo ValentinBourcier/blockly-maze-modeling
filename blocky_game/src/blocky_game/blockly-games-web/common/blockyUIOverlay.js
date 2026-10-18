@@ -179,8 +179,10 @@
                     if (resizing) {
                         var dx = clientX - startX;
                         var dy = clientY - startY;
-                        var newW = clamp(startW + dx, minW || 200, maxW || 800);
-                        var newH = clamp(startH + dy, minH || 100, maxH || 800);
+                        var maxAllowW = Math.max(minW || 200, vp.w - 20);
+                        var maxAllowH = Math.max(minH || 100, vp.h - 20);
+                        var newW = clamp(startW + dx, minW || 200, maxW ? Math.min(maxW, maxAllowW) : maxAllowW);
+                        var newH = clamp(startH + dy, minH || 100, maxH ? Math.min(maxH, maxAllowH) : maxAllowH);
                         panel.style.width = Math.round(newW) + 'px';
                         panel.style.height = Math.round(newH) + 'px';
                         return;
@@ -226,6 +228,7 @@
 
                     var pb = panel.getBoundingClientRect();
                     dragging = true;
+                    panel.__userDragged = true;
                     startX = clientX;
                     startY = clientY;
                     startLeft = pb.left;
@@ -253,6 +256,7 @@
 
                     var pb = panel.getBoundingClientRect();
                     resizing = true;
+                    panel.__userResized = true;
                     startX = clientX;
                     startY = clientY;
                     startW = pb.width;
@@ -426,12 +430,12 @@
                 panel.style.right = '10px';
                 panel.style.top = '80px';
                 panel.style.bottom = 'auto';
-                panel.style.width = '480px';
-                panel.style.height = '260px';
+                panel.style.width = '540px';
+                panel.style.height = '380px';
                 panel.style.minWidth = '300px';
                 panel.style.minHeight = '140px';
-                panel.style.maxWidth = '760px';
-                panel.style.maxHeight = '560px';
+                panel.style.maxWidth = 'calc(100vw - 20px)';
+                panel.style.maxHeight = 'calc(100vh - 20px)';
                 if (window.innerWidth < 768) {
                     panel.style.left = '10px';
                     panel.style.right = '10px';
@@ -447,6 +451,27 @@
                 panel.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.35)';
                 panel.style.zIndex = '99998';
                 panel.style.display = 'none';
+                panel.style.flexDirection = 'column';
+
+                window.addEventListener('resize', function() {
+                    try {
+                        if (!panel.__userResized && !panel.__userDragged) {
+                            if (window.innerWidth < 768) {
+                                panel.style.left = '10px';
+                                panel.style.right = '10px';
+                                panel.style.bottom = '10px';
+                                panel.style.top = 'auto';
+                                panel.style.width = 'calc(100vw - 20px)';
+                                panel.style.maxHeight = '60vh';
+                            } else {
+                                var targetH = Math.min(Math.max(300, window.innerHeight - 100), 750);
+                                var targetW = Math.min(Math.max(500, window.innerWidth - 40), 900);
+                                panel.style.width = targetW + 'px';
+                                panel.style.height = targetH + 'px';
+                            }
+                        }
+                    } catch(e) {}
+                });
 
                 var header = document.createElement('div'); header.id = '__momotHeader';
                 header.style.display = 'flex'; header.style.alignItems = 'center'; header.style.justifyContent = 'space-between';
@@ -503,6 +528,15 @@
                 settings.appendChild(labSolLen); settings.appendChild(inpSolLen);
 
                 var clearOverlayBtn = mkBtn('__momotClearOverlayBtn', 'Clear path', 'Clear the comparison path and the marker from the maze');
+                var chartToggleBtn = mkBtn('__momotChartToggleBtn', 'Chart', 'Toggle 2D Pareto scatter plot');
+                chartToggleBtn.addEventListener('click', function() {
+                    var show = (chartContainer.style.display === 'none' || !chartContainer.style.display);
+                    chartContainer.style.display = show ? 'flex' : 'none';
+                    chartToggleBtn.textContent = show ? 'Hide Chart' : 'Chart';
+                    if (show && typeof renderParetoChart === 'function') {
+                        renderParetoChart(window.__momotLastFiltered || window.__momotLastProcessed || []);
+                    }
+                });
                 var logToggleBtn = mkBtn('__momotLogToggleBtn', 'Log', 'Show or hide the MoMoT log');
                 logToggleBtn.addEventListener('click', function() {
                     var show = (log.style.display === 'none');
@@ -539,6 +573,7 @@
                 setInterval(updateCloseBtnState, 500);
                 right.appendChild(mRunBtn);
                 right.appendChild(mStopBtn);
+                right.appendChild(chartToggleBtn);
                 right.appendChild(logToggleBtn);
                 right.appendChild(clearOverlayBtn);
                 right.appendChild(gearBtn);
@@ -546,16 +581,150 @@
                 header.appendChild(title); header.appendChild(right);
 
                 var body = document.createElement('div'); body.id = '__momotBody';
-                body.style.padding = '6px 8px'; body.style.height = 'calc(100% - 38px)'; body.style.overflow = 'auto';
+                body.style.padding = '6px 8px';
+                body.style.display = 'flex';
+                body.style.flexDirection = 'column';
+                body.style.flex = '1 1 auto';
+                body.style.minHeight = '0';
+                body.style.overflow = 'hidden';
                 body.style.color = '#fff'; body.style.fontFamily = 'Consolas, Menlo, Monaco, monospace'; body.style.fontSize = '12px';
 
+                // Filter toolbar
+                var filterBar = document.createElement('div'); filterBar.id = '__momotFilterBar';
+                filterBar.style.display = 'flex'; filterBar.style.flexWrap = 'wrap'; filterBar.style.gap = '8px';
+                filterBar.style.alignItems = 'center'; filterBar.style.padding = '2px 0 6px 0';
+                filterBar.style.fontSize = '11px'; filterBar.style.color = '#ccc'; filterBar.style.flexShrink = '0';
+
+                var chkGoalLabel = document.createElement('label');
+                chkGoalLabel.style.display = 'inline-flex'; chkGoalLabel.style.alignItems = 'center'; chkGoalLabel.style.gap = '3px'; chkGoalLabel.style.cursor = 'pointer';
+                var chkGoal = document.createElement('input'); chkGoal.type = 'checkbox'; chkGoal.id = '__momotFilterGoal';
+                chkGoalLabel.appendChild(chkGoal);
+                chkGoalLabel.appendChild(document.createTextNode('Hide misses'));
+                chkGoalLabel.title = 'Hide programs that miss the goal';
+                chkGoal.addEventListener('change', function() { renderSolutions(); });
+                filterBar.appendChild(chkGoalLabel);
+
+                function mkFilterInput(id, placeholder, tip) {
+                    var inp = mkInput(id, '', tip, '38px');
+                    inp.placeholder = placeholder;
+                    inp.addEventListener('input', function() { renderSolutions(); });
+                    return inp;
+                }
+
+                var labFEdits = document.createElement('span'); labFEdits.textContent = '≤Edits:';
+                var inpFEdits = mkFilterInput('__momotFilterMaxEdits', 'max', 'Maximum Edits');
+                var labFPower = document.createElement('span'); labFPower.textContent = '≤Power:'; labFPower.style.color = '#f59e0b';
+                var inpFPower = mkFilterInput('__momotFilterMaxPower', 'max', 'Maximum Power (kW)');
+                var labFClosest = document.createElement('span'); labFClosest.textContent = '≤Closest:';
+                var inpFClosest = mkFilterInput('__momotFilterMaxClosest', 'max', 'Maximum Closest to Goal');
+                var labFMem = document.createElement('span'); labFMem.textContent = '≤Mem:'; labFMem.style.color = '#38bdf8';
+                var inpFMem = mkFilterInput('__momotFilterMaxMemory', 'max', 'Maximum Memory (kB)');
+
+                var filterResetBtn = mkBtn('__momotFilterResetBtn', 'Reset', 'Clear filters');
+                filterResetBtn.style.padding = '2px 6px'; filterResetBtn.style.fontSize = '10px'; filterResetBtn.style.minHeight = '20px';
+                filterResetBtn.addEventListener('click', function() {
+                    chkGoal.checked = false;
+                    inpFEdits.value = '';
+                    inpFPower.value = '';
+                    inpFClosest.value = '';
+                    inpFMem.value = '';
+                    renderSolutions();
+                });
+
+                filterBar.appendChild(labFEdits); filterBar.appendChild(inpFEdits);
+                filterBar.appendChild(labFPower); filterBar.appendChild(inpFPower);
+                filterBar.appendChild(labFClosest); filterBar.appendChild(inpFClosest);
+                filterBar.appendChild(labFMem); filterBar.appendChild(inpFMem);
+                filterBar.appendChild(filterResetBtn);
+
+                // Interactive 2D Pareto Chart
+                var chartContainer = document.createElement('div'); chartContainer.id = '__momotChartContainer';
+                chartContainer.style.display = 'none';
+                chartContainer.style.flexDirection = 'column';
+                chartContainer.style.gap = '4px';
+                chartContainer.style.padding = '6px';
+                chartContainer.style.marginBottom = '6px';
+                chartContainer.style.background = 'rgba(0,0,0,0.3)';
+                chartContainer.style.borderRadius = '4px';
+                chartContainer.style.border = '1px solid rgba(255,255,255,0.1)';
+                chartContainer.style.flexShrink = '0';
+                chartContainer.style.position = 'relative';
+
+                var chartControls = document.createElement('div');
+                chartControls.style.display = 'flex';
+                chartControls.style.alignItems = 'center';
+                chartControls.style.gap = '8px';
+                chartControls.style.fontSize = '11px';
+
+                var axisXLabel = document.createElement('span'); axisXLabel.textContent = 'X:';
+                var axisXSelect = document.createElement('select'); axisXSelect.id = '__momotChartAxisX';
+                axisXSelect.style.background = 'rgba(0,0,0,0.5)'; axisXSelect.style.color = '#fff'; axisXSelect.style.fontSize = '11px'; axisXSelect.style.border = '1px solid rgba(255,255,255,0.2)'; axisXSelect.style.borderRadius = '3px';
+
+                var axisYLabel = document.createElement('span'); axisYLabel.textContent = 'Y:';
+                var axisYSelect = document.createElement('select'); axisYSelect.id = '__momotChartAxisY';
+                axisYSelect.style.background = 'rgba(0,0,0,0.5)'; axisYSelect.style.color = '#fff'; axisYSelect.style.fontSize = '11px'; axisYSelect.style.border = '1px solid rgba(255,255,255,0.2)'; axisYSelect.style.borderRadius = '3px';
+
+                var axisOptions = [
+                    { idx: 1, label: 'Edits' },
+                    { idx: 2, label: 'Power (kW)' },
+                    { idx: 3, label: 'Closest to Goal' },
+                    { idx: 4, label: 'Memory (kB)' }
+                ];
+                axisOptions.forEach(function(opt) {
+                    var oX = document.createElement('option'); oX.value = opt.idx; oX.textContent = opt.label;
+                    if (opt.idx === 2) oX.selected = true;
+                    axisXSelect.appendChild(oX);
+
+                    var oY = document.createElement('option'); oY.value = opt.idx; oY.textContent = opt.label;
+                    if (opt.idx === 4) oY.selected = true;
+                    axisYSelect.appendChild(oY);
+                });
+
+                axisXSelect.addEventListener('change', function() { renderParetoChart(window.__momotLastFiltered || window.__momotLastProcessed || []); });
+                axisYSelect.addEventListener('change', function() { renderParetoChart(window.__momotLastFiltered || window.__momotLastProcessed || []); });
+
+                var chartLegend = document.createElement('span');
+                chartLegend.style.marginLeft = 'auto'; chartLegend.style.fontSize = '10px'; chartLegend.style.color = '#aaa';
+                chartLegend.innerHTML = '<span style="color:#38bdf8;">●</span> 2D Pareto Front &nbsp; <span style="color:#22c55e;">●</span> Goal &nbsp; <span style="color:#ec4899;">●</span> Selected';
+
+                chartControls.appendChild(axisXLabel); chartControls.appendChild(axisXSelect);
+                chartControls.appendChild(axisYLabel); chartControls.appendChild(axisYSelect);
+                chartControls.appendChild(chartLegend);
+
+                var chartSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                chartSvg.id = '__momotChartSvg';
+                chartSvg.setAttribute('viewBox', '0 0 440 140');
+                chartSvg.style.width = '100%';
+                chartSvg.style.height = '140px';
+                chartSvg.style.display = 'block';
+
+                var chartTooltip = document.createElement('div');
+                chartTooltip.id = '__momotChartTooltip';
+                chartTooltip.style.position = 'absolute';
+                chartTooltip.style.display = 'none';
+                chartTooltip.style.padding = '4px 8px';
+                chartTooltip.style.background = 'rgba(0,0,0,0.9)';
+                chartTooltip.style.border = '1px solid rgba(255,255,255,0.4)';
+                chartTooltip.style.borderRadius = '4px';
+                chartTooltip.style.fontSize = '11px';
+                chartTooltip.style.color = '#fff';
+                chartTooltip.style.pointerEvents = 'none';
+                chartTooltip.style.zIndex = '100000';
+                chartTooltip.style.whiteSpace = 'pre';
+
+                chartContainer.appendChild(chartControls);
+                chartContainer.appendChild(chartSvg);
+                chartContainer.appendChild(chartTooltip);
+
                 var list = document.createElement('div'); list.id = '__momotList';
-                list.style.height = '140px'; list.style.overflow = 'auto';
+                list.style.flex = '1 1 auto';
+                list.style.minHeight = '60px';
+                list.style.overflow = 'auto';
                 list.style.border = '1px solid rgba(255,255,255,0.1)'; list.style.borderRadius = '4px';
                 list.style.background = 'rgba(0,0,0,0.2)'; list.style.display = 'none';
 
                 var status = document.createElement('div'); status.id = '__momotStatus'; status.style.marginTop = '6px';
-                status.style.color = '#0f0'; status.style.fontWeight = 'bold';
+                status.style.color = '#0f0'; status.style.fontWeight = 'bold'; status.style.flexShrink = '0';
                 status.textContent = 'Place the pegman to start search.';
 
                 var log = document.createElement('pre'); log.id = '__momotLog';
@@ -564,10 +733,10 @@
                 log.style.background = 'rgba(0,0,0,0.4)'; log.style.color = '#ddd';
                 log.style.border = '1px solid rgba(255,255,255,0.15)'; log.style.borderRadius = '6px';
                 log.style.whiteSpace = 'pre-wrap'; log.style.wordBreak = 'break-word'; log.textContent = '';
-                log.style.display = 'none';
+                log.style.display = 'none'; log.style.flexShrink = '0';
 
                 var prog = document.createElement('div'); prog.id = '__momotProgress';
-                prog.style.marginTop = '6px'; prog.style.display = 'none';
+                prog.style.marginTop = '6px'; prog.style.display = 'none'; prog.style.flexShrink = '0';
                 var progBar = document.createElement('div');
                 progBar.style.height = '8px'; progBar.style.background = 'rgba(255,255,255,0.15)';
                 progBar.style.borderRadius = '4px'; progBar.style.overflow = 'hidden';
@@ -579,7 +748,12 @@
                 progText.style.marginTop = '3px'; progText.style.fontSize = '11px'; progText.style.color = '#ddd';
                 prog.appendChild(progBar); prog.appendChild(progText);
 
-                body.appendChild(list); body.appendChild(status); body.appendChild(prog); body.appendChild(log);
+                body.appendChild(filterBar);
+                body.appendChild(chartContainer);
+                body.appendChild(list);
+                body.appendChild(status);
+                body.appendChild(prog);
+                body.appendChild(log);
                 panel.appendChild(header); panel.appendChild(settings); panel.appendChild(body);
 
                 var rh = document.createElement('div'); rh.id = '__momotResizeHandle';
@@ -592,9 +766,12 @@
                 host.appendChild(panel);
 
                 window.__momotSelectedPath = null;
+                window.__momotSortKeys = [{ col: 0, dir: 1 }];
                 window.__momotSortCol = 0;
                 window.__momotSortDir = 1;
                 window.__momotLastData = [];
+                window.__momotLastProcessed = [];
+                window.__momotLastFiltered = [];
 
                 function setStatus(msg) { try { status.textContent = msg || ''; } catch(e) {} }
                 function logClear() { try { log.textContent = ''; } catch(e) {} }
@@ -661,11 +838,14 @@
                         window.__momotLastData = [];
                         window.__momotLastJson = null;
                         window.__momotSelectedPath = null;
+                        window.__momotLastProcessed = [];
+                        window.__momotLastFiltered = [];
                         list.innerHTML = '';
                         list.style.display = 'none';
                         logClear();
                         setStatus('No solutions for this level yet. Place the pegman to start search.');
                         if (window.__dbgDrawComparisonPath) window.__dbgDrawComparisonPath([]);
+                        if (typeof renderParetoChart === 'function') renderParetoChart([]);
                     } catch(e) {}
                 }
 
@@ -684,6 +864,174 @@
                     } catch(e) {}
                 }
                 window.__dbgDrawComparisonPath = __dbgDrawComparisonPath;
+
+                function renderParetoChart(processed) {
+                    try {
+                        if (!chartSvg) return;
+                        while (chartSvg.firstChild) chartSvg.removeChild(chartSvg.firstChild);
+                        if (chartContainer.style.display === 'none') return;
+                        if (!processed || !processed.length) return;
+
+                        var axisX = parseInt(axisXSelect ? axisXSelect.value : '2') || 2;
+                        var axisY = parseInt(axisYSelect ? axisYSelect.value : '4') || 4;
+
+                        var pts = [];
+                        for (var i = 0; i < processed.length; i++) {
+                            var item = processed[i];
+                            var xv = item.objs[axisX];
+                            var yv = item.objs[axisY];
+                            if (xv !== undefined && !isNaN(xv) && xv < 100000 && yv !== undefined && !isNaN(yv) && yv < 100000) {
+                                pts.push({
+                                    p: item,
+                                    x: xv,
+                                    y: yv,
+                                    isGoal: item.isGoal,
+                                    modelName: item.modelName,
+                                    isSelected: (window.__momotSelectedPath && item.it.modelPath === window.__momotSelectedPath)
+                                });
+                            }
+                        }
+                        if (!pts.length) return;
+
+                        for (var pi = 0; pi < pts.length; pi++) {
+                            var pA = pts[pi];
+                            if (!pA.isGoal) { pA.isPareto2D = false; continue; }
+                            var dominated = false;
+                            for (var pj = 0; pj < pts.length; pj++) {
+                                if (pi === pj) continue;
+                                var pB = pts[pj];
+                                if (!pB.isGoal) continue;
+                                if (pB.x <= pA.x && pB.y <= pA.y && (pB.x < pA.x || pB.y < pA.y)) {
+                                    dominated = true;
+                                    break;
+                                }
+                            }
+                            pA.isPareto2D = !dominated;
+                        }
+
+                        var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                        for (var k = 0; k < pts.length; k++) {
+                            if (pts[k].x < minX) minX = pts[k].x;
+                            if (pts[k].x > maxX) maxX = pts[k].x;
+                            if (pts[k].y < minY) minY = pts[k].y;
+                            if (pts[k].y > maxY) maxY = pts[k].y;
+                        }
+                        if (minX === maxX) { minX -= 1; maxX += 1; }
+                        if (minY === maxY) { minY -= 1; maxY += 1; }
+
+                        var padL = 40, padR = 20, padT = 15, padB = 25;
+                        var plotW = 440 - padL - padR;
+                        var plotH = 140 - padT - padB;
+
+                        function toPx(x) { return padL + ((x - minX) / (maxX - minX)) * plotW; }
+                        function toPy(y) { return padT + ((maxY - y) / (maxY - minY)) * plotH; }
+
+                        var ns = 'http://www.w3.org/2000/svg';
+
+                        var axisLines = document.createElementNS(ns, 'path');
+                        var d = 'M ' + padL + ' ' + padT + ' L ' + padL + ' ' + (padT + plotH) + ' L ' + (padL + plotW) + ' ' + (padT + plotH);
+                        axisLines.setAttribute('d', d);
+                        axisLines.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+                        axisLines.setAttribute('stroke-width', '1');
+                        axisLines.setAttribute('fill', 'none');
+                        chartSvg.appendChild(axisLines);
+
+                        var xLabelText = (axisXSelect && axisXSelect.options[axisXSelect.selectedIndex]) ? axisXSelect.options[axisXSelect.selectedIndex].text : 'X';
+                        var yLabelText = (axisYSelect && axisYSelect.options[axisYSelect.selectedIndex]) ? axisYSelect.options[axisYSelect.selectedIndex].text : 'Y';
+
+                        var xLbl = document.createElementNS(ns, 'text');
+                        xLbl.setAttribute('x', padL + plotW / 2);
+                        xLbl.setAttribute('y', 140 - 5);
+                        xLbl.setAttribute('fill', '#aaa');
+                        xLbl.setAttribute('font-size', '10');
+                        xLbl.setAttribute('text-anchor', 'middle');
+                        xLbl.textContent = xLabelText + ' (' + minX + '..' + maxX + ')';
+                        chartSvg.appendChild(xLbl);
+
+                        var yLbl = document.createElementNS(ns, 'text');
+                        yLbl.setAttribute('x', 5);
+                        yLbl.setAttribute('y', padT + 8);
+                        yLbl.setAttribute('fill', '#aaa');
+                        yLbl.setAttribute('font-size', '10');
+                        yLbl.setAttribute('text-anchor', 'start');
+                        yLbl.textContent = yLabelText;
+                        chartSvg.appendChild(yLbl);
+
+                        pts.forEach(function(pt) {
+                            var cx = toPx(pt.x);
+                            var cy = toPy(pt.y);
+                            var circle = document.createElementNS(ns, 'circle');
+                            circle.setAttribute('cx', cx);
+                            circle.setAttribute('cy', cy);
+                            circle.style.cursor = 'pointer';
+
+                            if (pt.isSelected) {
+                                circle.setAttribute('r', '6');
+                                circle.setAttribute('fill', '#ec4899');
+                                circle.setAttribute('stroke', '#ffffff');
+                                circle.setAttribute('stroke-width', '2');
+                            } else if (pt.isPareto2D) {
+                                circle.setAttribute('r', '5');
+                                circle.setAttribute('fill', '#38bdf8');
+                                circle.setAttribute('stroke', '#ffffff');
+                                circle.setAttribute('stroke-width', '1.5');
+                            } else if (pt.isGoal) {
+                                circle.setAttribute('r', '3.5');
+                                circle.setAttribute('fill', '#22c55e');
+                                circle.setAttribute('stroke', 'rgba(255,255,255,0.4)');
+                                circle.setAttribute('stroke-width', '0.5');
+                            } else {
+                                circle.setAttribute('r', '2.5');
+                                circle.setAttribute('fill', '#9ca3af');
+                                circle.setAttribute('opacity', '0.5');
+                            }
+
+                            circle.addEventListener('click', function(e) {
+                                if (e && e.stopPropagation) e.stopPropagation();
+                                selectAndLoad(pt.p);
+                            });
+
+                            circle.addEventListener('mouseenter', function(e) {
+                                if (!chartTooltip) return;
+                                chartTooltip.style.left = (cx + 10) + 'px';
+                                chartTooltip.style.top = (cy - 10) + 'px';
+                                chartTooltip.textContent = pt.modelName + '\n' +
+                                    xLabelText + ': ' + pt.x + '\n' +
+                                    yLabelText + ': ' + pt.y + '\n' +
+                                    'Edits: ' + (pt.p.objs[1] !== undefined ? pt.p.objs[1] : '-') + '\n' +
+                                    (pt.isPareto2D ? '[2D Pareto Front]' : (pt.isGoal ? '[Goal Reaching]' : '[Misses Goal]'));
+                                chartTooltip.style.display = 'block';
+                            });
+
+                            circle.addEventListener('mouseleave', function() {
+                                if (chartTooltip) chartTooltip.style.display = 'none';
+                            });
+
+                            chartSvg.appendChild(circle);
+                        });
+                    } catch(e) {}
+                }
+
+                function selectAndLoad(p) {
+                    window.__momotSelectedPath = p.it.modelPath;
+                    setStatus('Selected: ' + p.modelName);
+                    renderSolutions();
+                    try {
+                        var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
+                        if (bridge && bridge.getSolutionPath) {
+                            var pathJson = bridge.getSolutionPath(p.it.modelPath);
+                            var path = (typeof pathJson === 'string') ? JSON.parse(pathJson) : pathJson;
+                            if (window.__dbgDrawComparisonPath) window.__dbgDrawComparisonPath(path);
+                        }
+                    } catch(eP) {}
+                    try {
+                        var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
+                        if (bridge && bridge.loadMomotSolution) {
+                            setStatus('Loading ' + p.modelName + '...');
+                            bridge.loadMomotSolution(p.it.modelPath);
+                        }
+                    } catch(eL) {}
+                }
 
                 function renderSolutions(data) {
                     try {
@@ -704,19 +1052,29 @@
                         } else if (data && typeof data === 'object') {
                             arr = data.solutions || [];
                         }
-                        if (data !== undefined && data !== null) {
+                        var hasData = (Array.isArray(data) && data.length > 0) ||
+                                      (data && typeof data === 'object' && Array.isArray(data.solutions) && data.solutions.length > 0);
+                        if (hasData) {
                             window.__momotLastData = data;
                         }
                         var keepPath = window.__momotSelectedPath;
                         var keepScroll = list.scrollTop;
                         list.innerHTML = '';
                         if (!arr || !arr.length) {
-                            window.__momotLastData = [];
-                            window.__momotLastJson = null;
-                            window.__momotSelectedPath = null;
-                            setStatus('No solutions found.');
-                            list.style.display = 'none';
-                            return;
+                            var searchActive = (typeof window.__momotSearchActive === 'function') ? window.__momotSearchActive() : false;
+                            var cachedArr = Array.isArray(window.__momotLastData) ? window.__momotLastData :
+                                            (window.__momotLastData && Array.isArray(window.__momotLastData.solutions) ? window.__momotLastData.solutions : []);
+                            if (searchActive && cachedArr && cachedArr.length > 0) {
+                                arr = cachedArr;
+                            } else {
+                                window.__momotLastData = [];
+                                window.__momotLastJson = null;
+                                window.__momotSelectedPath = null;
+                                setStatus('No solutions found.');
+                                list.style.display = 'none';
+                                if (typeof renderParetoChart === 'function') renderParetoChart([]);
+                                return;
+                            }
                         }
                         list.style.display = 'block';
                         var maxObj = 0;
@@ -730,24 +1088,57 @@
                             return { it: it, objs: objs, modelName: name, isGoal: isGoal };
                         });
 
-                        if (window.__momotSortCol === -1) {
-                            processed.sort(function(a, b) {
-                                if (a.isGoal !== b.isGoal) return a.isGoal ? -1 : 1;
-                                return 0;
-                            });
-                        } else {
-                            processed.sort(function(a, b) {
+                        window.__momotLastProcessed = processed;
+
+                        var hideMisses = chkGoal && chkGoal.checked;
+                        var maxEdits = parseFloat(inpFEdits ? inpFEdits.value : '');
+                        var maxPower = parseFloat(inpFPower ? inpFPower.value : '');
+                        var maxClosest = parseFloat(inpFClosest ? inpFClosest.value : '');
+                        var maxMemory = parseFloat(inpFMem ? inpFMem.value : '');
+
+                        var filtered = processed.filter(function(p) {
+                            if (hideMisses && !p.isGoal) return false;
+                            if (!isNaN(maxEdits) && p.objs[1] !== undefined && p.objs[1] > maxEdits) return false;
+                            if (!isNaN(maxPower) && p.objs[2] !== undefined && p.objs[2] > maxPower) return false;
+                            if (!isNaN(maxClosest) && p.objs[3] !== undefined && p.objs[3] > maxClosest) return false;
+                            if (!isNaN(maxMemory) && p.objs[4] !== undefined && p.objs[4] > maxMemory) return false;
+                            return true;
+                        });
+
+                        window.__momotLastFiltered = filtered;
+
+                        if (!window.__momotSortKeys || !window.__momotSortKeys.length) {
+                            window.__momotSortKeys = [{ col: 0, dir: 1 }];
+                        }
+                        filtered.sort(function(a, b) {
+                            for (var k = 0; k < window.__momotSortKeys.length; k++) {
+                                var sKey = window.__momotSortKeys[k];
+                                var col = sKey.col;
+                                var dir = sKey.dir;
                                 var vA, vB;
-                                if (window.__momotSortCol < maxObj) {
-                                    vA = a.objs[window.__momotSortCol] !== undefined ? a.objs[window.__momotSortCol] : Infinity;
-                                    vB = b.objs[window.__momotSortCol] !== undefined ? b.objs[window.__momotSortCol] : Infinity;
+                                if (col === 0) {
+                                    vA = a.isGoal ? 0 : 1;
+                                    vB = b.isGoal ? 0 : 1;
+                                } else if (col < maxObj) {
+                                    vA = (a.objs[col] !== undefined && !isNaN(a.objs[col])) ? a.objs[col] : Infinity;
+                                    vB = (b.objs[col] !== undefined && !isNaN(b.objs[col])) ? b.objs[col] : Infinity;
                                 } else {
                                     vA = a.modelName; vB = b.modelName;
                                 }
-                                if (vA < vB) return -1 * window.__momotSortDir;
-                                if (vA > vB) return 1 * window.__momotSortDir;
-                                return 0;
-                            });
+                                if (vA < vB) return -1 * dir;
+                                if (vA > vB) return 1 * dir;
+                            }
+                            return 0;
+                        });
+
+                        var baseline = null;
+                        if (keepPath) {
+                            for (var bi = 0; bi < filtered.length; bi++) {
+                                if (filtered[bi].it.modelPath === keepPath) {
+                                    baseline = filtered[bi];
+                                    break;
+                                }
+                            }
                         }
 
                         var table = document.createElement('table');
@@ -758,73 +1149,124 @@
                         var hRow = document.createElement('tr');
                         hRow.style.position = 'sticky'; hRow.style.top = '0'; hRow.style.background = '#444'; hRow.style.zIndex = '10';
 
+                        var objNames = ['Goal Reached', 'Edits', 'Power (kW)', 'Closest to Goal', 'Memory (kB)'];
+                        var displayCols = Math.max(maxObj, objNames.length);
+
                         function mkTh(label, colIdx) {
                             var th = document.createElement('th');
-                            th.textContent = label; th.style.padding = '6px 8px'; th.style.border = '1px solid rgba(255,255,255,0.25)';
-                            th.style.cursor = 'pointer'; th.style.textAlign = 'left';
-                            if (window.__momotSortCol === colIdx) th.textContent += (window.__momotSortDir === 1 ? ' ▲' : ' ▼');
-                            th.addEventListener('click', function() {
-                                if (window.__momotSortCol === colIdx) window.__momotSortDir *= -1;
-                                else { window.__momotSortCol = colIdx; window.__momotSortDir = 1; }
+                            th.textContent = label;
+                            th.style.padding = '6px 8px';
+                            th.style.border = '1px solid rgba(255,255,255,0.25)';
+                            th.style.cursor = 'pointer';
+                            th.style.textAlign = (colIdx === 0 ? 'center' : 'right');
+                            if (colIdx === 2) { th.style.color = '#f59e0b'; th.title = 'Power consumption (in kW)'; }
+                            if (colIdx === 4) { th.style.color = '#38bdf8'; th.title = 'Memory consumption (in kB)'; }
+
+                            var sortIdx = -1;
+                            for (var k = 0; k < window.__momotSortKeys.length; k++) {
+                                if (window.__momotSortKeys[k].col === colIdx) { sortIdx = k; break; }
+                            }
+                            if (sortIdx !== -1) {
+                                var dir = window.__momotSortKeys[sortIdx].dir;
+                                var arrow = (dir === 1 ? ' ▲' : ' ▼');
+                                if (window.__momotSortKeys.length > 1) {
+                                    th.textContent += ' ' + (sortIdx + 1) + (dir === 1 ? '▲' : '▼');
+                                } else {
+                                    th.textContent += arrow;
+                                }
+                            }
+
+                            th.addEventListener('click', function(ev) {
+                                if (ev.shiftKey) {
+                                    var found = false;
+                                    for (var k = 0; k < window.__momotSortKeys.length; k++) {
+                                        if (window.__momotSortKeys[k].col === colIdx) {
+                                            window.__momotSortKeys[k].dir *= -1;
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        window.__momotSortKeys.push({ col: colIdx, dir: 1 });
+                                    }
+                                } else {
+                                    if (window.__momotSortKeys.length === 1 && window.__momotSortKeys[0].col === colIdx) {
+                                        window.__momotSortKeys[0].dir *= -1;
+                                    } else {
+                                        window.__momotSortKeys = [{ col: colIdx, dir: 1 }];
+                                    }
+                                }
+                                window.__momotSortCol = window.__momotSortKeys[0].col;
+                                window.__momotSortDir = window.__momotSortKeys[0].dir;
                                 renderSolutions();
                             });
                             return th;
                         }
 
-                        var objNames = ['Goal Reached', 'Edits', 'Power consumption (in kW)', 'Closest to Goal', 'Memory consumption (in kB)'];
-                        var displayCols = Math.max(maxObj, objNames.length);
-                        for (var i=0; i<displayCols; i++) hRow.appendChild(mkTh(objNames[i] || ('Obj ' + (i+1)), i));
+                        for (var i = 0; i < displayCols; i++) {
+                            hRow.appendChild(mkTh(objNames[i] || ('Obj ' + (i+1)), i));
+                        }
                         thead.appendChild(hRow); table.appendChild(thead);
 
                         var tbody = document.createElement('tbody');
                         var selectedName = null;
-                        processed.forEach(function(p) {
+                        filtered.forEach(function(p) {
                             var tr = document.createElement('tr');
                             tr.style.cursor = 'pointer';
                             if (!p.isGoal) tr.style.opacity = '0.65';
-                            if (keepPath && p.it.modelPath === keepPath) {
-                                tr.style.background = 'rgba(255,255,255,0.15)';
+                            var isSelected = (keepPath && p.it.modelPath === keepPath);
+                            if (isSelected) {
+                                tr.style.background = 'rgba(56,189,248,0.2)';
+                                tr.style.outline = '1px solid #38bdf8';
                                 selectedName = p.modelName;
                             }
-                            for (var i=0; i<displayCols; i++) {
+
+                            for (var i = 0; i < displayCols; i++) {
                                 var td = document.createElement('td');
                                 var val = p.objs[i];
+                                if (i === 2) td.style.color = '#f59e0b';
+                                if (i === 4) td.style.color = '#38bdf8';
+
                                 if (i === 0) {
+                                    td.style.textAlign = 'center';
                                     if (val === -1) td.textContent = 'TRUE';
                                     else if (val === 0) td.textContent = 'FALSE';
                                     else td.textContent = (val !== undefined && !isNaN(val)) ? val : '-';
                                 } else {
-                                    td.textContent = (val !== undefined && !isNaN(val) && val < 100000) ? val : '-';
+                                    td.style.textAlign = 'right';
+                                    var valValid = (val !== undefined && !isNaN(val) && val < 100000);
+                                    var valStr = valValid ? String(val) : '-';
+
+                                    if (baseline && !isSelected && valValid && baseline.objs[i] !== undefined && !isNaN(baseline.objs[i]) && baseline.objs[i] < 100000) {
+                                        var baseVal = baseline.objs[i];
+                                        var diff = val - baseVal;
+                                        var deltaSpan = '';
+                                        if (diff > 0) {
+                                            deltaSpan = ' <span style="font-size:10px; color:#ef4444;">(+' + diff + ')</span>';
+                                        } else if (diff < 0) {
+                                            deltaSpan = ' <span style="font-size:10px; color:#22c55e;">(' + diff + ')</span>';
+                                        } else {
+                                            deltaSpan = ' <span style="font-size:10px; color:#9ca3af;">(0)</span>';
+                                        }
+                                        td.innerHTML = valStr + deltaSpan;
+                                    } else {
+                                        td.textContent = valStr;
+                                    }
                                 }
-                                td.style.padding = '6px 8px'; td.style.textAlign = 'right';
+                                td.style.padding = '6px 8px';
                                 td.style.border = '1px solid rgba(255,255,255,0.15)';
                                 tr.appendChild(td);
                             }
 
-                            tr.addEventListener('mouseenter', function() { if (window.__momotSelectedPath !== p.it.modelPath) tr.style.background = 'rgba(255,255,255,0.05)'; });
-                            tr.addEventListener('mouseleave', function() { if (window.__momotSelectedPath !== p.it.modelPath) tr.style.background = 'transparent'; });
+                            tr.addEventListener('mouseenter', function() {
+                                if (window.__momotSelectedPath !== p.it.modelPath) tr.style.background = 'rgba(255,255,255,0.05)';
+                            });
+                            tr.addEventListener('mouseleave', function() {
+                                if (window.__momotSelectedPath !== p.it.modelPath) tr.style.background = 'transparent';
+                            });
 
                             tr.addEventListener('click', function() {
-                                window.__momotSelectedPath = p.it.modelPath;
-                                var kids = tbody.children;
-                                for (var k=0; k<kids.length; k++) kids[k].style.background = 'transparent';
-                                tr.style.background = 'rgba(255,255,255,0.15)';
-                                setStatus('Selected: ' + p.modelName);
-                                try {
-                                    var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
-                                    if (bridge && bridge.getSolutionPath) {
-                                        var pathJson = bridge.getSolutionPath(p.it.modelPath);
-                                        var path = (typeof pathJson === 'string') ? JSON.parse(pathJson) : pathJson;
-                                        if (window.__dbgDrawComparisonPath) window.__dbgDrawComparisonPath(path);
-                                    }
-                                } catch(eP) {}
-                                try {
-                                    var bridge = window.javaBridge || (window.parent && window.parent.javaBridge);
-                                    if (bridge && bridge.loadMomotSolution) {
-                                        setStatus('Loading ' + p.modelName + '...');
-                                        bridge.loadMomotSolution(p.it.modelPath);
-                                    }
-                                } catch(eL) {}
+                                selectAndLoad(p);
                             });
                             tbody.appendChild(tr);
                         });
@@ -832,12 +1274,16 @@
                         var goalCount = processed.filter(function(p) { return p.isGoal; }).length;
                         if (selectedName) {
                             window.__momotSelectedPath = keepPath;
-                            setStatus('Selected: ' + selectedName);
+                            setStatus('Selected: ' + selectedName + ' (' + filtered.length + ' shown / ' + processed.length + ' total)');
                         } else {
                             window.__momotSelectedPath = null;
-                            setStatus(processed.length + ' candidate(s), ' + goalCount + ' reaching the goal.');
+                            setStatus(processed.length + ' candidate(s), ' + goalCount + ' reaching the goal' + (filtered.length !== processed.length ? ' (' + filtered.length + ' shown)' : '') + '.');
                         }
                         list.scrollTop = keepScroll;
+
+                        if (typeof renderParetoChart === 'function') {
+                            renderParetoChart(filtered);
+                        }
                     } catch(e) { setStatus('Failed to render: ' + e); }
                 }
 
@@ -854,7 +1300,7 @@
                 }
 
                 window.__momotShowAndRefresh = function(){
-                    try { panel.style.display = 'block'; } catch(e) {}
+                    try { panel.style.display = 'flex'; } catch(e) {}
                     try { refresh(); } catch(e2) {}
                 };
 
@@ -913,7 +1359,7 @@
                 var host2 = document.body || document.documentElement;
                 if (host2) host2.appendChild(existing);
             }
-            __makePanelDraggableAndResizable('__momotPanel', '__momotHeader', '__momotResizeHandle', 300, 140, 700, 600);
+            __makePanelDraggableAndResizable('__momotPanel', '__momotHeader', '__momotResizeHandle', 300, 140, null, null);
             window.__momotReady = true;
             return true;
         } catch(e) { return false; }
@@ -1110,7 +1556,7 @@
                         } catch(e) {}
                     }
 
-                    function __dbgSetPegman(q, s, t) {
+                    function __dbgSetPegman(q, s, t, immediate) {
                         try {
                             if (window.__dbgTurnTimers && window.__dbgTurnTimers.length) {
                                 for (var k=0; k<window.__dbgTurnTimers.length; k++) { clearTimeout(window.__dbgTurnTimers[k]); }
@@ -1136,11 +1582,6 @@
                             var validQ = (typeof q === 'number' && !isNaN(q)) ? q : defQ;
                             var validS = (typeof s === 'number' && !isNaN(s)) ? s : defS;
 
-                            if (startObj && validQ === 0 && validS === 0 && (startObj.x !== 0 || startObj.y !== 0)) {
-                                validQ = startObj.x;
-                                validS = startObj.y;
-                            }
-
                             var validT = (typeof t === 'number' && !isNaN(t)) ? t : (typeof window.T === 'number' ? window.T : 0);
 
                             var oldQ = window.Q, oldS = window.S, oldT = window.T;
@@ -1149,7 +1590,7 @@
                             window.Q = validQ; window.S = validS; window.T = validT;
 
                             if (typeof Z === 'function') {
-                                if (oldQ === validQ && oldS === validS && oldT !== validT) {
+                                if (!immediate && oldQ === validQ && oldS === validS && oldT !== validT) {
                                     var frames = 4, frameDelay = 50;
                                     for (var i=1; i<=frames; i++) {
                                         (function(step){
@@ -1167,7 +1608,7 @@
                         } catch(e) {}
                     }
 
-                    function __dbgRenderFrame(fr) {
+                    function __dbgRenderFrame(fr, immediate) {
                         try {
                             if (!fr) return;
                             window.__dbgSessionStarted = true;
@@ -1212,7 +1653,7 @@
                                 }
                             } catch(e) {}
 
-                            __dbgSetPegman(fr.q, fr.s, fr.t);
+                            __dbgSetPegman(fr.q, fr.s, fr.t, immediate);
                             var pauseBtn = document.getElementById('debugPauseResumeButton');
                             var stepBtn = document.getElementById('debugStepButton');
                             var skipBtn = document.getElementById('debugSkipEndButton');
@@ -1346,6 +1787,37 @@
                         } catch(e) {}
                     });
 
+                    function __dbgPerformSkip() {
+                        try {
+                            if (!window.__dbgSessionStarted) __dbgStart();
+                            if (window.Y && Array.isArray(window.Y)) {
+                                for (var yi = 0; yi < window.Y.length; yi++) {
+                                    clearTimeout(window.Y[yi]);
+                                }
+                                window.Y = [];
+                            }
+                            if (window.__dbgTurnTimers && window.__dbgTurnTimers.length) {
+                                for (var k = 0; k < window.__dbgTurnTimers.length; k++) {
+                                    clearTimeout(window.__dbgTurnTimers[k]);
+                                }
+                                window.__dbgTurnTimers = [];
+                            }
+                            if (window.__dbgTimer) {
+                                clearInterval(window.__dbgTimer);
+                                window.__dbgTimer = null;
+                            }
+                            var frStr = window.javaBridge.debugSkipToEnd();
+                            var fr = JSON.parse(frStr);
+                            __dbgRenderFrame(fr, true);
+                            if (window.__dbgTurnTimers && window.__dbgTurnTimers.length) {
+                                for (var k2 = 0; k2 < window.__dbgTurnTimers.length; k2++) {
+                                    clearTimeout(window.__dbgTurnTimers[k2]);
+                                }
+                                window.__dbgTurnTimers = [];
+                            }
+                        } catch(e) {}
+                    }
+
                     debugPauseResumeBtn.addEventListener('click', function() { __dbgTogglePause(); });
                     debugStopBtn.addEventListener('click', function() { __dbgStop(); });
                     debugStepBtn.addEventListener('click', function() { __dbgStep(); });
@@ -1359,19 +1831,17 @@
                                 if (tgt.id === 'debugPauseResumeButton') { __dbgTogglePause(); ev.preventDefault(); ev.stopPropagation(); }
                                 else if (tgt.id === 'debugStopButton') { __dbgStop(); ev.preventDefault(); ev.stopPropagation(); }
                                 else if (tgt.id === 'debugStepButton') { __dbgStep(); ev.preventDefault(); ev.stopPropagation(); }
+                                else if (tgt.id === 'debugSkipEndButton') { __dbgPerformSkip(); ev.preventDefault(); ev.stopPropagation(); }
                             } catch(e) {}
                         }, true);
                     }
 
-                    debugSkipBtn.addEventListener('click', function() {
-                        try {
-                            if (!window.__dbgSessionStarted) __dbgStart();
-                            var frStr = window.javaBridge.debugSkipToEnd();
-                            var fr = JSON.parse(frStr);
-                            __dbgRenderFrame(fr);
-                            if (window.__dbgTimer) { clearInterval(window.__dbgTimer); window.__dbgTimer = null; }
-                        } catch(e) {}
-                    });
+                    if (!window.__dbgSkipBound && !debugSkipBtn.__skipBound) {
+                        debugSkipBtn.__skipBound = true;
+                        debugSkipBtn.addEventListener('click', function() {
+                            __dbgPerformSkip();
+                        });
+                    }
 
                     // Direct Manipulation Click Logic
                     window.__dmActive = false;

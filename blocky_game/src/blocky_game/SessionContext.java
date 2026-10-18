@@ -140,7 +140,6 @@ public class SessionContext {
         if (mapJson == null || mapJson.trim().isEmpty()) return true;
         try {
             engine.setMapFromJson(mapJson);
-            clearMomotState();
         } catch (Exception e) {
             System.err.println("[SessionContext " + sessionId + "] syncMap error: " + e.getMessage());
         }
@@ -161,7 +160,7 @@ public class SessionContext {
             int oldLevelId = (engine.getCurrentLevel() != null) ? engine.getCurrentLevel().getId() : -1;
             engine.syncLevelMeta(metaJson);
             int newLevelId = (engine.getCurrentLevel() != null) ? engine.getCurrentLevel().getId() : -1;
-            if (oldLevelId != newLevelId) {
+            if (oldLevelId != newLevelId && this.momotCurrentLevelId != -1 && this.momotCurrentLevelId != newLevelId) {
                 clearMomotState();
             }
         } catch (Exception e) {
@@ -178,7 +177,6 @@ public class SessionContext {
         if (mapJson != null && !mapJson.trim().isEmpty()) {
             try {
                 engine.setMapFromJson(mapJson);
-                clearMomotState();
             } catch (Exception e) {
                 System.err.println("[SessionContext " + sessionId + "] syncMap error: " + e.getMessage());
             }
@@ -188,7 +186,7 @@ public class SessionContext {
                 int oldLevelId = (engine.getCurrentLevel() != null) ? engine.getCurrentLevel().getId() : -1;
                 engine.syncLevelMeta(metaJson);
                 int newLevelId = (engine.getCurrentLevel() != null) ? engine.getCurrentLevel().getId() : -1;
-                if (oldLevelId != newLevelId) {
+                if (oldLevelId != newLevelId && this.momotCurrentLevelId != -1 && this.momotCurrentLevelId != newLevelId) {
                     clearMomotState();
                 }
             } catch (Exception e) {
@@ -410,6 +408,9 @@ public class SessionContext {
             }
             if (!f.exists()) return false;
             engine.loadFromFile(f);
+            if (this.momotCurrentLevelId >= 0 && engine.getCurrentLevel() != null) {
+                engine.getCurrentLevel().setId(this.momotCurrentLevelId);
+            }
             return true;
         } catch (Exception e) {
             System.err.println("[SessionContext " + sessionId + "] loadMomotSolution failed: " + e.getMessage());

@@ -10,15 +10,13 @@
  * The readout goes there and copies the button's font; without that cell it falls back to the bottom-left.
  */
 (function() {
-    // Full labels: "Memory consumption (in kB)" and "Power consumption (in kW)".
-    var MEMORY_NAME = 'Memory consumption';
-    var MEMORY_UNIT = '(in kB)';
-    var POWER_NAME = 'Power consumption';
-    var POWER_UNIT = '(in kW)';
+    // Labels with units: Power (kW) and Memory (kB).
+    var POWER_LABEL = 'Power (kW)';
+    var MEMORY_LABEL = 'Memory (kB)';
 
     var box = null;
-    var memoryEl = null;
     var powerEl = null;
+    var memoryEl = null;
     var lastMemory;
     var lastPower;
 
@@ -49,29 +47,27 @@
         b.style.boxSizing = 'border-box';
         b.style.pointerEvents = 'none';
 
-        // Two fixed lines per metric: the name, then the unit and the value. Each line never wraps itself,
-        // so the label is not split at an arbitrary place.
-        function row(name, unit) {
+        // Power first (amber), then Memory (blue)
+        function row(label, color) {
             var r = document.createElement('div');
             r.style.marginTop = '4px';
-            var l1 = document.createElement('div');
-            l1.textContent = name;
-            l1.style.whiteSpace = 'nowrap';
-            var l2 = document.createElement('div');
-            l2.style.whiteSpace = 'nowrap';
+            r.style.color = color;
+            var l = document.createElement('div');
+            l.style.whiteSpace = 'nowrap';
             var u = document.createElement('span');
-            u.textContent = unit + ': ';
+            u.textContent = label + ': ';
+            u.style.color = color;
             var v = document.createElement('b');
             v.textContent = '-';
-            l2.appendChild(u);
-            l2.appendChild(v);
-            r.appendChild(l1);
-            r.appendChild(l2);
+            v.style.color = color;
+            l.appendChild(u);
+            l.appendChild(v);
+            r.appendChild(l);
             b.appendChild(r);
             return v;
         }
-        memoryEl = row(MEMORY_NAME, MEMORY_UNIT);
-        powerEl = row(POWER_NAME, POWER_UNIT);
+        powerEl = row(POWER_LABEL, '#f59e0b');
+        memoryEl = row(MEMORY_LABEL, '#38bdf8');
         return b;
     }
 

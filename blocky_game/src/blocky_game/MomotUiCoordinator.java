@@ -25,12 +25,21 @@ public class MomotUiCoordinator {
     private volatile String momotCurrentOutputDir;
     private volatile int momotRunLevelId = -1;
     private final AtomicLong momotRunGeneration = new AtomicLong();
+    private final AtomicLong loadRequestGeneration = new AtomicLong();
     private volatile Thread momotRunThread;
     private volatile boolean pendingShowMomotPanel;
 
     public MomotUiCoordinator(GameEngine engine, WebView webView) {
         this.engine = engine;
         this.webView = webView;
+    }
+
+    public int getMomotRunLevelId() {
+        return momotRunLevelId;
+    }
+
+    public long getLoadRequestGeneration() {
+        return loadRequestGeneration.get();
     }
 
     public void setBridgeController(BlockyJsBridgeController bridgeController) {
@@ -292,16 +301,8 @@ public class MomotUiCoordinator {
             List<MomotResultsService.SolutionEntry> sols;
             MomotResultsService.SearchMetrics metrics = null;
             String filterDir;
-            int runLevelId;
-            int currentLevelId;
             synchronized (this) {
                 filterDir = momotCurrentOutputDir;
-                runLevelId = momotRunLevelId;
-                Level current = engine.getCurrentLevel();
-                currentLevelId = current != null ? current.getId() : -1;
-            }
-            if (runLevelId != currentLevelId) {
-                filterDir = null;
             }
             if (filterDir != null && !filterDir.trim().isEmpty()) {
                 File outDir = new File(filterDir.trim());
@@ -361,15 +362,24 @@ public class MomotUiCoordinator {
     public void loadMomotSolution(String xmiPath) {
         if (xmiPath == null || xmiPath.trim().isEmpty()) return;
         System.out.println("[MomotUiCoordinator] loadMomotSolution path=" + xmiPath);
+        final long reqId = loadRequestGeneration.incrementAndGet();
         pendingShowMomotPanel = true;
-        Platform.runLater(() -> loadMomotSolutionInPlace(xmiPath.trim()));
+        Platform.runLater(() -> loadMomotSolutionInPlace(xmiPath.trim(), reqId));
     }
 
     public void loadMomotSolutionInPlace(String xmiPath) {
+        loadMomotSolutionInPlace(xmiPath, loadRequestGeneration.get());
+    }
+
+    public void loadMomotSolutionInPlace(String xmiPath, long reqId) {
+        if (reqId != loadRequestGeneration.get()) {
+            System.out.println("[MomotUiCoordinator] Superseded load request: " + reqId);
+            return;
+        }
         File xmiFile = new File(xmiPath);
         if (!xmiFile.exists()) {
             try {
-                String msg = escapeForJsStringLiteral("Solution model not found: " + xmiFile.getPath());
+                String msg = escapeForJsStringLiteral("Solution model file no longer exists: " + xmiFile.getName());
                 webView.getEngine().executeScript(
                     "try { if (window.__momotSetStatus) window.__momotSetStatus(\"" + msg + "\"); } catch(e) {}"
                 );
@@ -381,6 +391,9 @@ public class MomotUiCoordinator {
 
         try {
             engine.loadFromFile(xmiFile);
+            if (momotRunLevelId >= 0 && engine.getCurrentLevel() != null) {
+                engine.getCurrentLevel().setId(momotRunLevelId);
+            }
         } catch (IOException e) {
             try {
                 String msg = escapeForJsStringLiteral("Failed to load solution model: " + e.getMessage());
@@ -399,6 +412,10 @@ public class MomotUiCoordinator {
             return;
         }
 
+        if (reqId != loadRequestGeneration.get()) {
+            return;
+        }
+
         Level level = engine.getCurrentLevel();
         if (level == null) return;
 
@@ -409,6 +426,7 @@ public class MomotUiCoordinator {
         } catch (Exception ignored) {
         }
         String escapedForJson = escapeForJsStringLiteral(xml);
+        String escapedModelName = escapeForJsStringLiteral(xmiFile.getName());
 
         String injectPastNew = ImmediateFeedbackService.buildWindowInjectPathsScript(engine.getPastPath(), engine.getNewPath());
         String injectDm;
@@ -441,7 +459,11 @@ public class MomotUiCoordinator {
         try {
             System.out.println("[MomotUiCoordinator] loadMomotSolutionInPlace: preparing injection...");
 
-            webView.getEngine().executeScript("window.__momotXml = \"" + escapedForJson + "\";");
+            webView.getEngine().executeScript(
+                "window.__momotXml = \"" + escapedForJson + "\"; " +
+                "window.__momotLastLoadedModelName = \"" + escapedModelName + "\"; " +
+                "window.__momotLoadId = " + reqId + ";"
+            );
             webView.getEngine().executeScript("try { " + injectPastNew + " } catch(e) {}");
             webView.getEngine().executeScript("try { " + injectDm + " } catch(e) {}");
 
