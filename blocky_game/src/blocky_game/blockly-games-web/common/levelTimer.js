@@ -583,6 +583,91 @@
         return null;
     }
 
+    function renderConfirmModalRuns(modal) {
+        if (!modal) return;
+        var container = modal.querySelector('#levelTimerConfirmRunsContainer');
+        if (!container) {
+            var box = modal.querySelector('.level-timer-modal-box');
+            var actions = modal.querySelector('.level-timer-actions');
+            if (box && actions) {
+                container = document.createElement('div');
+                container.id = 'levelTimerConfirmRunsContainer';
+                box.insertBefore(container, actions);
+            }
+        }
+        if (!container) return;
+
+        var goalRuns = [];
+        if (typeof window.__scoreboardGetRuns === 'function') {
+            try {
+                var runs = window.__scoreboardGetRuns(level);
+                if (Array.isArray(runs)) {
+                    for (var i = 0; i < runs.length; i++) {
+                        if (runs[i] && runs[i].goalReached) {
+                            goalRuns.push(runs[i]);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('[levelTimer] Failed to get scoreboard runs:', e);
+            }
+        }
+
+        if (goalRuns.length === 0) {
+            container.innerHTML = '<div class="level-timer-confirm-empty" style="text-align: center; color: #57606a; padding: 14px 8px; margin: 10px 0 16px 0; background: #f6f8fa; border-radius: 6px; font-size: 13px; border: 1px dashed #d0d7de;">No goal-reaching solutions for this level yet.</div>';
+            return;
+        }
+
+        var html = [
+            '<div class="level-timer-confirm-table-wrapper" style="max-height: 220px; overflow-y: auto; margin: 10px 0 16px 0; border: 1px solid #d0d7de; border-radius: 6px;">',
+            '  <table class="level-timer-confirm-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">',
+            '    <thead>',
+            '      <tr style="background: #f6f8fa; border-bottom: 1px solid #d0d7de; color: #57606a;">',
+            '        <th style="padding: 6px 10px; font-weight: 600;">Run #</th>',
+            '        <th style="padding: 6px 10px; font-weight: 600; color: #b45309;">Power (kW)</th>',
+            '        <th style="padding: 6px 10px; font-weight: 600; color: #0284c7;">Memory (kB)</th>',
+            '        <th style="padding: 6px 10px; font-weight: 600; text-align: center;">Action</th>',
+            '      </tr>',
+            '    </thead>',
+            '    <tbody id="levelTimerConfirmTableBody">'
+        ];
+
+        for (var j = 0; j < goalRuns.length; j++) {
+            var r = goalRuns[j];
+            var powDisplay = (typeof r.power === 'number' && !isNaN(r.power) && r.power >= 0) ? (r.power + ' kW') : '-';
+            var memDisplay = (typeof r.memory === 'number' && !isNaN(r.memory) && r.memory >= 0) ? (r.memory + ' kB') : '-';
+            html.push(
+                '      <tr data-run-id="' + r.id + '" style="border-bottom: 1px solid #eaecef;">',
+                '        <td style="padding: 6px 10px; font-weight: 600;">#' + r.id + '</td>',
+                '        <td style="padding: 6px 10px; color: #b45309;">' + powDisplay + '</td>',
+                '        <td style="padding: 6px 10px; color: #0284c7;">' + memDisplay + '</td>',
+                '        <td style="padding: 6px 10px; text-align: center;">',
+                '          <button type="button" class="scoreboard-load-btn timer-btn-secondary level-timer-load-btn" data-id="' + r.id + '" data-run-id="' + r.id + '" style="padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">Load</button>',
+                '        </td>',
+                '      </tr>'
+            );
+        }
+
+        html.push(
+            '    </tbody>',
+            '  </table>',
+            '</div>'
+        );
+        container.innerHTML = html.join('\n');
+
+        var loadBtns = container.querySelectorAll('.level-timer-load-btn');
+        for (var k = 0; k < loadBtns.length; k++) {
+            loadBtns[k].addEventListener('click', function(e) {
+                e.stopPropagation();
+                var runId = parseInt(this.getAttribute('data-id') || this.getAttribute('data-run-id'), 10);
+                if (typeof window.__scoreboardLoadRun === 'function') {
+                    window.__scoreboardLoadRun(runId, level);
+                }
+                modal.style.display = 'none';
+            });
+        }
+    }
+
     function confirmNextTask() {
         if (!isLevelSolved(level) && !isAllLevelsCompleted()) {
             showToast('Run a program that reaches the goal to unlock the next task.');
@@ -596,9 +681,10 @@
             modal.id = 'levelTimerConfirmModal';
             modal.style.display = 'flex';
             modal.innerHTML = [
-                '<div class="level-timer-modal-box">',
+                '<div class="level-timer-modal-box" style="width: 480px; max-width: 94vw;">',
                 '  <h3>Go to the next task?</h3>',
                 '  <p>Time on this task will be saved and the page will move to the next level.</p>',
+                '  <div id="levelTimerConfirmRunsContainer"></div>',
                 '  <div class="level-timer-actions">',
                 '    <button type="button" class="timer-btn-secondary" id="levelTimerConfirmStayBtn">Stay</button>',
                 '    <button type="button" class="timer-btn-primary" id="levelTimerConfirmNextBtn">Next task</button>',
@@ -624,7 +710,15 @@
                 });
             }
         } else if (modal) {
+            var box = modal.querySelector('.level-timer-modal-box');
+            if (box) {
+                box.style.width = '480px';
+                box.style.maxWidth = '94vw';
+            }
             modal.style.display = 'flex';
+        }
+        if (modal) {
+            renderConfirmModalRuns(modal);
         }
     }
 
@@ -756,6 +850,48 @@
             '  align-items: center;',
             '  justify-content: center;',
             '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;',
+            '}',
+            '#levelTimerConfirmModal .level-timer-modal-box {',
+            '  width: 480px;',
+            '  max-width: 94vw;',
+            '}',
+            '.level-timer-confirm-empty {',
+            '  text-align: center;',
+            '  color: #57606a;',
+            '  padding: 14px 8px;',
+            '  margin: 10px 0 16px 0;',
+            '  background: #f6f8fa;',
+            '  border-radius: 6px;',
+            '  font-size: 13px;',
+            '  border: 1px dashed #d0d7de;',
+            '}',
+            '.level-timer-confirm-table-wrapper {',
+            '  max-height: 220px;',
+            '  overflow-y: auto;',
+            '  margin: 10px 0 16px 0;',
+            '  border: 1px solid #d0d7de;',
+            '  border-radius: 6px;',
+            '}',
+            '.level-timer-confirm-table {',
+            '  width: 100%;',
+            '  border-collapse: collapse;',
+            '  font-size: 12px;',
+            '  text-align: left;',
+            '}',
+            '.level-timer-confirm-table th, .level-timer-confirm-table td {',
+            '  padding: 6px 10px;',
+            '}',
+            '.level-timer-confirm-table th {',
+            '  background: #f6f8fa;',
+            '  border-bottom: 1px solid #d0d7de;',
+            '  font-weight: 600;',
+            '  color: #57606a;',
+            '}',
+            '.level-timer-confirm-table tr:not(:last-child) td {',
+            '  border-bottom: 1px solid #eaecef;',
+            '}',
+            '.level-timer-confirm-table tr:hover td {',
+            '  background: #f6f8fa;',
             '}',
             '.level-timer-modal-box {',
             '  background: #ffffff;',

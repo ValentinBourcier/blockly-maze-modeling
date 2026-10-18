@@ -327,6 +327,10 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         let navigatedUrl = null;
         window.__levelTimerNavigate = (url) => { navigatedUrl = url; };
 
+        // Load scoreboard
+        const scoreboardScript = fs.readFileSync(path.join(__dirname, '../common/scoreboard.js'), 'utf8');
+        window.eval(scoreboardScript);
+
         const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
         window.eval(timerScript);
 
@@ -343,6 +347,32 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         window.__levelTimerMarkLevelSolved(3);
         assert.strictEqual(nextBtn.disabled, false, 'Next task button should be enabled after level is solved');
 
+        // Store a mix of goal and non-goal runs for level 3
+        window.__scoreboardAddRun({
+            goalReached: false,
+            power: 10,
+            memory: 4,
+            xml: '<xml id="run1"><block type="maze_turn"></block></xml>'
+        });
+        window.__scoreboardAddRun({
+            goalReached: true,
+            power: 14,
+            memory: 6,
+            xml: '<xml id="run2"><block type="maze_moveForward"></block></xml>'
+        });
+        window.__scoreboardAddRun({
+            goalReached: false,
+            power: 8,
+            memory: 3,
+            xml: '<xml id="run3"><block type="maze_turn"></block></xml>'
+        });
+        window.__scoreboardAddRun({
+            goalReached: true,
+            power: 12,
+            memory: 5,
+            xml: '<xml id="run4"><block type="maze_moveForward"></block></xml>'
+        });
+
         // Now clicking next task shows confirm modal
         nextBtn.click();
 
@@ -355,7 +385,61 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         assert.strictEqual(storedLevel, '3', 'First click must not change stored level');
         assert.strictEqual(navigatedUrl, null, 'First click must not navigate');
 
-        // Confirming must store level 4 and navigate to level=4
+        // Assert the dialog lists only the goal-reaching ones (runs 2 and 4)
+        const rows = confirmModal.querySelectorAll('#levelTimerConfirmTableBody tr');
+        assert.strictEqual(rows.length, 2, 'Dialog must list only the 2 goal-reaching runs');
+
+        const runIds = Array.from(rows).map(r => r.getAttribute('data-run-id'));
+        assert.deepStrictEqual(runIds, ['2', '4'], 'Rows must correspond to goal-reaching runs #2 and #4');
+
+        // Verify non-goal runs are omitted
+        assert.ok(!Array.from(rows).some(r => r.getAttribute('data-run-id') === '1'), 'Run #1 (non-goal) must be omitted');
+        assert.ok(!Array.from(rows).some(r => r.getAttribute('data-run-id') === '3'), 'Run #3 (non-goal) must be omitted');
+
+        // Verify columns: run number, power (kW), memory (kB), and no goal column
+        const headers = Array.from(confirmModal.querySelectorAll('thead th')).map(th => th.textContent.trim());
+        assert.ok(headers.some(h => /run|#/i.test(h)), 'Should have run number header');
+        assert.ok(headers.some(h => h.includes('Power (kW)')), 'Should have Power (kW) header');
+        assert.ok(headers.some(h => h.includes('Memory (kB)')), 'Should have Memory (kB) header');
+        assert.ok(!headers.some(h => /goal/i.test(h)), 'Goal column must be omitted');
+
+        const row0Text = rows[0].textContent;
+        assert.ok(row0Text.includes('#2') || row0Text.includes('2'));
+        assert.ok(row0Text.includes('14 kW'));
+        assert.ok(row0Text.includes('6 kB'));
+        assert.ok(!row0Text.includes('Yes') && !row0Text.includes('No'), 'Row must not have goal reached badge');
+
+        // Load a listed run and assert it does not navigate
+        let restoredXml = null;
+        window.applyXmlToWorkspace = (xml) => { restoredXml = xml; };
+
+        const loadBtn = rows[0].querySelector('.level-timer-load-btn');
+        assert.ok(loadBtn, 'Load button should exist on row');
+        loadBtn.click();
+
+        assert.strictEqual(confirmModal.style.display, 'none', 'Load must close the dialog');
+        assert.strictEqual(restoredXml, '<xml id="run2"><block type="maze_moveForward"></block></xml>', 'Load must restore workspace XML');
+        assert.strictEqual(navigatedUrl, null, 'Loading a run must not navigate');
+        storedLevel = window.sessionStorage.getItem('blocky_level_timer_current_level');
+        assert.strictEqual(storedLevel, '3', 'Stored level must remain 3 after loading a run');
+
+        // Reopen dialog: Stay does not navigate
+        nextBtn.click();
+        assert.strictEqual(confirmModal.style.display, 'flex');
+
+        const stayBtn = window.document.getElementById('levelTimerConfirmStayBtn');
+        assert.ok(stayBtn, 'Stay button should exist');
+        stayBtn.click();
+
+        assert.strictEqual(confirmModal.style.display, 'none', 'Stay must close the dialog');
+        assert.strictEqual(navigatedUrl, null, 'Stay must not navigate');
+        storedLevel = window.sessionStorage.getItem('blocky_level_timer_current_level');
+        assert.strictEqual(storedLevel, '3', 'Stored level must remain 3 after Stay');
+
+        // Reopen dialog: Next task still stores level 4 and navigates
+        nextBtn.click();
+        assert.strictEqual(confirmModal.style.display, 'flex');
+
         const confirmNextBtn = window.document.getElementById('levelTimerConfirmNextBtn');
         assert.ok(confirmNextBtn, 'Confirm Next task button should exist');
         confirmNextBtn.click();
@@ -364,6 +448,33 @@ describe('Level Timer and Activity Headers Test Suite', () => {
         storedLevel = window.sessionStorage.getItem('blocky_level_timer_current_level');
         assert.strictEqual(storedLevel, '4', 'Confirming Next task must store level 4');
         assert.ok(navigatedUrl && navigatedUrl.includes('level=4'), 'Confirming Next task must navigate to level 4');
+    });
+
+    it('shows empty state in next-task confirm dialog when no goal-reaching runs exist or scoreboard is missing', () => {
+        let navigatedUrl = null;
+        window.__levelTimerNavigate = (url) => { navigatedUrl = url; };
+
+        const timerScript = fs.readFileSync(path.join(__dirname, '../common/levelTimer.js'), 'utf8');
+        window.eval(timerScript);
+
+        window.__levelTimerMarkLevelSolved(3);
+
+        const nextBtn = window.document.getElementById('timerNextTaskBtn');
+        nextBtn.click();
+
+        const confirmModal = window.document.getElementById('levelTimerConfirmModal');
+        assert.ok(confirmModal);
+        assert.strictEqual(confirmModal.style.display, 'flex');
+        assert.ok(confirmModal.textContent.includes('No goal-reaching solutions for this level yet.'));
+
+        const stayBtn = window.document.getElementById('levelTimerConfirmStayBtn');
+        assert.ok(stayBtn, 'Stay button should still exist in empty state');
+        const confirmNextBtn = window.document.getElementById('levelTimerConfirmNextBtn');
+        assert.ok(confirmNextBtn, 'Next task button should still exist in empty state');
+
+        stayBtn.click();
+        assert.strictEqual(confirmModal.style.display, 'none');
+        assert.strictEqual(navigatedUrl, null);
     });
 
     it('stops active MoMoT search when Next task button is clicked', () => {
