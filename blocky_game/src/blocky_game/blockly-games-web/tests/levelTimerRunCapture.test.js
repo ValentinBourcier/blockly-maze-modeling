@@ -352,7 +352,7 @@ describe('Level Timer and Activity Headers Test Suite', () => {
             goalReached: false,
             power: 10,
             memory: 4,
-            xml: '<xml id="run1"><block type="maze_turn"></block></xml>'
+            xml: '<xml id="run1"><block type="maze_turn"><field name="DIR">turnLeft</field></block></xml>'
         });
         window.__scoreboardAddRun({
             goalReached: true,
@@ -364,13 +364,13 @@ describe('Level Timer and Activity Headers Test Suite', () => {
             goalReached: false,
             power: 8,
             memory: 3,
-            xml: '<xml id="run3"><block type="maze_turn"></block></xml>'
+            xml: '<xml id="run3"><block type="maze_turn"><field name="DIR">turnRight</field></block></xml>'
         });
         window.__scoreboardAddRun({
             goalReached: true,
             power: 12,
             memory: 5,
-            xml: '<xml id="run4"><block type="maze_moveForward"></block></xml>'
+            xml: '<xml id="run4"><block type="maze_moveForward"><next><block type="maze_moveForward"></block></next></block></xml>'
         });
 
         // Now clicking next task shows confirm modal

@@ -47,22 +47,49 @@
         return (typeof v === 'number' && !isNaN(v) && v >= 0) ? (v + ' ' + unit) : '-';
     }
 
+    function normalizeXml(xml) {
+        if (typeof window !== 'undefined' && typeof window.__stripBlockPositionsAndIds === 'function') {
+            return window.__stripBlockPositionsAndIds(xml);
+        }
+        if (!xml || typeof xml !== 'string') return '';
+        return xml
+            .replace(/<[^>]+>/g, function(tag) {
+                return tag.replace(/\s+(?:x|y|id)\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+            })
+            .replace(/>\s+</g, '><')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
     function sanitizeRuns(rawList) {
         if (!Array.isArray(rawList)) return { runs: [], modified: true };
         var cleaned = [];
+        var seenKeys = {};
         var modified = false;
         for (var i = 0; i < rawList.length; i++) {
             var r = rawList[i];
             if (r && typeof r === 'object' &&
                 typeof r.memory === 'number' && !isNaN(r.memory) && r.memory >= 0 &&
                 typeof r.power === 'number' && !isNaN(r.power) && r.power >= 0) {
-                var nextId = cleaned.length + 1;
-                if (r.id !== nextId) {
-                    r.id = nextId;
+                var key = normalizeXml(r.xml);
+                if (Object.prototype.hasOwnProperty.call(seenKeys, key)) {
+                    var existing = seenKeys[key];
+                    if (r.goalReached && !existing.goalReached) {
+                        existing.goalReached = true;
+                    }
                     modified = true;
+                } else {
+                    seenKeys[key] = r;
+                    cleaned.push(r);
                 }
-                cleaned.push(r);
             } else {
+                modified = true;
+            }
+        }
+        for (var j = 0; j < cleaned.length; j++) {
+            var nextId = j + 1;
+            if (cleaned[j].id !== nextId) {
+                cleaned[j].id = nextId;
                 modified = true;
             }
         }
@@ -108,6 +135,46 @@
         }
     }
 
+    var scoreboardToastTimeout = null;
+    var scoreboardToastHideTimeout = null;
+
+    function showScoreboardToast(msg) {
+        if (typeof document === 'undefined' || !document.body) return;
+        var toast = document.getElementById('scoreboardToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'scoreboardToast';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.background = 'rgba(31, 111, 235, 0.95)';
+            toast.style.color = '#ffffff';
+            toast.style.padding = '8px 16px';
+            toast.style.borderRadius = '6px';
+            toast.style.fontSize = '13px';
+            toast.style.fontWeight = '600';
+            toast.style.zIndex = '1000002';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            toast.style.transition = 'opacity 0.3s ease';
+            toast.style.pointerEvents = 'none';
+            document.body.appendChild(toast);
+        }
+        if (scoreboardToastTimeout) clearTimeout(scoreboardToastTimeout);
+        if (scoreboardToastHideTimeout) clearTimeout(scoreboardToastHideTimeout);
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        toast.style.display = 'block';
+        scoreboardToastTimeout = setTimeout(function() {
+            toast.style.opacity = '0';
+            scoreboardToastHideTimeout = setTimeout(function() {
+                toast.style.display = 'none';
+            }, 300);
+        }, 3000);
+    }
+
+    var lastTouchedRun = null;
+
     function addRun(runData) {
         var level = getLevel();
         var runs = getRuns(level);
@@ -116,16 +183,53 @@
         if (memVal < 0 || powVal < 0) {
             return null;
         }
+
+        var runXml = (runData && typeof runData.xml === 'string') ? runData.xml : '';
+        var key = normalizeXml(runXml);
+        var duplicate = null;
+        for (var i = 0; i < runs.length; i++) {
+            if (normalizeXml(runs[i].xml) === key) {
+                duplicate = runs[i];
+                break;
+            }
+        }
+
+        if (duplicate) {
+            lastTouchedRun = { level: level, id: duplicate.id };
+            var isGoal = !!(runData && runData.goalReached);
+            if (isGoal && !duplicate.goalReached) {
+                duplicate.goalReached = true;
+                saveRuns(level, runs);
+            }
+            var msg = 'This program is already recorded as Run #' + duplicate.id + '.';
+            if (typeof window !== 'undefined') {
+                showScoreboardToast(msg);
+                updateUI();
+                var panel = document.getElementById('__scoreboardPanel');
+                var statusEl = document.getElementById('scoreboardStatusMsg');
+                if (panel && panel.style.display !== 'none') {
+                    if (statusEl) {
+                        statusEl.textContent = msg;
+                    }
+                    highlightRow(duplicate.id);
+                } else if (statusEl) {
+                    statusEl.textContent = msg;
+                }
+            }
+            return duplicate;
+        }
+
         var newRun = {
             id: runs.length + 1,
             timestamp: Date.now(),
             goalReached: !!(runData && runData.goalReached),
             memory: memVal,
             power: powVal,
-            xml: (runData && typeof runData.xml === 'string') ? runData.xml : ''
+            xml: runXml
         };
         runs.push(newRun);
         saveRuns(level, runs);
+        lastTouchedRun = { level: level, id: newRun.id };
         if (typeof window !== 'undefined') {
             updateUI();
         }
@@ -135,11 +239,27 @@
     function markLastRunGoalReached(lvl) {
         var level = (typeof lvl === 'number') ? lvl : getLevel();
         var runs = getRuns(level);
-        if (runs.length > 0) {
-            runs[runs.length - 1].goalReached = true;
-            saveRuns(level, runs);
-            if (typeof window !== 'undefined') {
-                updateUI();
+        if (runs.length === 0) return;
+
+        var targetRun = null;
+        if (lastTouchedRun && lastTouchedRun.level === level) {
+            for (var i = 0; i < runs.length; i++) {
+                if (runs[i].id === lastTouchedRun.id) {
+                    targetRun = runs[i];
+                    break;
+                }
+            }
+        }
+        if (!targetRun) {
+            targetRun = runs[runs.length - 1];
+        }
+        targetRun.goalReached = true;
+        saveRuns(level, runs);
+        if (typeof window !== 'undefined') {
+            updateUI();
+            var panel = document.getElementById('__scoreboardPanel');
+            if (panel && panel.style.display !== 'none') {
+                highlightRow(targetRun.id);
             }
         }
     }
@@ -147,6 +267,9 @@
     function clearRuns(lvl) {
         var level = (typeof lvl === 'number') ? lvl : getLevel();
         saveRuns(level, []);
+        if (lastTouchedRun && lastTouchedRun.level === level) {
+            lastTouchedRun = null;
+        }
         if (typeof window !== 'undefined') {
             updateUI();
         }
@@ -194,12 +317,8 @@
         return true;
     }
 
-    function highlightLoadedRow(runId) {
+    function highlightRow(runId) {
         if (typeof document === 'undefined') return;
-        var statusEl = document.getElementById('scoreboardStatusMsg');
-        if (statusEl) {
-            statusEl.textContent = 'Loaded Run #' + runId;
-        }
         var rows = document.querySelectorAll('#scoreboardTableBody tr');
         for (var i = 0; i < rows.length; i++) {
             var row = rows[i];
@@ -209,6 +328,15 @@
                 row.style.background = 'transparent';
             }
         }
+    }
+
+    function highlightLoadedRow(runId) {
+        if (typeof document === 'undefined') return;
+        var statusEl = document.getElementById('scoreboardStatusMsg');
+        if (statusEl) {
+            statusEl.textContent = 'Loaded Run #' + runId;
+        }
+        highlightRow(runId);
     }
 
     // DOM UI Rendering
