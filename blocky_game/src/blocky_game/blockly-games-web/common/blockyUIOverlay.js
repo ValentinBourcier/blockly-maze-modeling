@@ -929,19 +929,34 @@
             function drawOverlay(id, path, color, offset, dash) {
                 var svg = document.getElementById('svgMaze');
                 var old = document.getElementById(id);
-                if (old && old.parentNode) old.parentNode.removeChild(old);
-                if (!path || !path.length || !svg) return;
+                if (!path || !path.length || !svg) {
+                    if (old && old.parentNode) old.parentNode.removeChild(old);
+                    return;
+                }
                 var off = (typeof offset === 'number') ? offset : 25;
+                var pts = [];
+                for (var i=0; i<path.length; i++) {
+                    pts.push((50*path[i][0]+off) + ',' + (50*path[i][1]+off));
+                }
+                var ptsString = (path.length >= 2) ? pts.join(' ') : '';
+
+                if (old) {
+                    var existingKey = old.getAttribute('data-path-points');
+                    var existingPoly = old.querySelector('polyline');
+                    var polyMatches = (path.length >= 2) ? (existingPoly && existingPoly.getAttribute('points') === ptsString) : !existingPoly;
+                    if (existingKey === ptsString && polyMatches) {
+                        return;
+                    }
+                    if (old.parentNode) old.parentNode.removeChild(old);
+                }
+
                 var g = document.createElementNS(ns, 'g');
                 g.setAttribute('id', id);
                 g.setAttribute('data-immediate-feedback', 'true');
+                g.setAttribute('data-path-points', ptsString);
                 if (path.length >= 2) {
-                    var pts = [];
-                    for (var i=0; i<path.length; i++) {
-                        pts.push((50*path[i][0]+off) + ',' + (50*path[i][1]+off));
-                    }
                     var poly = document.createElementNS(ns, 'polyline');
-                    poly.setAttribute('points', pts.join(' '));
+                    poly.setAttribute('points', ptsString);
                     poly.setAttribute('fill', 'none');
                     poly.setAttribute('stroke', color);
                     poly.setAttribute('stroke-width', '7');
@@ -976,7 +991,7 @@
                         var next = window.__injectNewPath || [];
                         // BLOCKY_LIVE_PATH === false (maze-original.html): draw only after Run Program
                         if (window.BLOCKY_LIVE_PATH === false && !window.__runPathShown) next = [];
-                        drawOverlay('ifNew', next, '#ff8c1a', 20, '10 6');
+                        drawOverlay('ifNew', next, '#ff8c1a', 25, '10 6');
                         var op = document.getElementById('ifPast'); if (op && op.parentNode) op.parentNode.removeChild(op);
                         var oc2 = document.getElementById('ifCommon'); if (oc2 && oc2.parentNode) oc2.parentNode.removeChild(oc2);
                     }

@@ -1259,6 +1259,7 @@
                 if (typeof fetch === 'function') {
                     var nowIso = new Date().toISOString();
                     var currentXml = getCurrentWorkspaceXml();
+                    var pathToken = (typeof window.__nextPathToken === 'function') ? window.__nextPathToken() : null;
                     fetch('/api/simulation/run', {
                         method: 'POST',
                         headers: headers,
@@ -1275,7 +1276,8 @@
                     }).then(function(r) {
                         if (r.ok) return r.json();
                     }).then(function(data) {
-                        if (data && data.newPath && typeof window.__ifRender === 'function') {
+                        var isLatest = (pathToken === null || typeof window.__isLatestPathToken !== 'function' || window.__isLatestPathToken(pathToken));
+                        if (isLatest && data && data.newPath && typeof window.__ifRender === 'function') {
                             window.__runPathShown = true; // see BLOCKY_LIVE_PATH in blockyUIOverlay.js
                             window.__injectNewPath = data.newPath;
                             window.__ifRender();

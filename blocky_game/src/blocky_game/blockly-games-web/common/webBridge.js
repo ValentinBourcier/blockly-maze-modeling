@@ -49,6 +49,33 @@
     // Bump epoch once per page load/initialization
     incrementSyncEpoch();
 
+    var currentPathToken = (typeof window.__blockyPathToken === 'number') ? window.__blockyPathToken : 0;
+
+    function nextPathToken() {
+        currentPathToken = (((typeof window.__blockyPathToken === 'number') ? window.__blockyPathToken : currentPathToken) + 1) >>> 0;
+        window.__blockyPathToken = currentPathToken;
+        return currentPathToken;
+    }
+
+    function isLatestPathToken(tok) {
+        return tok === window.__blockyPathToken;
+    }
+
+    window.__nextPathToken = nextPathToken;
+    window.__isLatestPathToken = isLatestPathToken;
+
+    function stripBlockPositionsAndIds(xml) {
+        if (!xml || typeof xml !== 'string') return '';
+        return xml
+            .replace(/<[^>]+>/g, function(tag) {
+                return tag.replace(/\s+(?:x|y|id)\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+            })
+            .replace(/>\s+</g, '><')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+    window.__stripBlockPositionsAndIds = stripBlockPositionsAndIds;
+
     function clearWorkspaceBlocks() {
         try {
             var ws = (window.BlocklyInterface && window.BlocklyInterface.getWorkspace && window.BlocklyInterface.getWorkspace()) ||
@@ -783,7 +810,6 @@
         }
 
         var newPreview = compressRemainingPositions(states, localDbg.active ? localDbg.index : 0);
-        window.__injectNewPath = newPreview;
 
         return { states: states };
     }
@@ -921,6 +947,7 @@
             var hasBlocks = xml && xml.indexOf('<block') >= 0;
             if (!hasBlocks && !allowEmpty) return;
             window.__lastSyncedXml = xml || '';
+            var token = nextPathToken();
             var epoch = getSyncEpoch();
             var info = getTimerSessionInfo();
             getSessionId(function(sid) {
@@ -963,6 +990,7 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     noteRunLevel(data);
+                    if (!isLatestPathToken(token)) return;
                     if (data) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
@@ -1041,6 +1069,7 @@
         },
 
         runSimulation: function() {
+            var token = nextPathToken();
             var info = getTimerSessionInfo();
             getSessionId(function(sid) {
                 if (!sid) return;
@@ -1054,6 +1083,7 @@
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    if (!isLatestPathToken(token)) return;
                     if (!localDbg.active && data && data.logs && window.__execLogAppend) {
                         window.__execLogAppend(data.logs);
                     }
@@ -1759,36 +1789,47 @@
                 emptyWorkspacePollCount++;
             }
 
-            if (xmlStr && xmlStr !== window.__lastObservedXml) {
-                window.__lastObservedXml = xmlStr;
-                clearRunResultOnEdit();
+            var prevNorm = stripBlockPositionsAndIds(window.__lastObservedXml || '');
+            var currNorm = stripBlockPositionsAndIds(xmlStr || '');
+            var syncedNorm = stripBlockPositionsAndIds(window.__lastSyncedXml || '');
+            var programChanged = currNorm !== prevNorm;
+            var syncNeeded = currNorm !== syncedNorm;
 
-                var sx = getStartX();
-                var sy = getStartY();
-                var st = getStartT();
+            if (hasBlocks) {
+                if (programChanged) {
+                    window.__lastObservedXml = xmlStr;
+                    clearRunResultOnEdit();
 
-                if (!localDbg.active) {
-                    localDbg.startX = sx;
-                    localDbg.startY = sy;
-                    localDbg.startT = st;
-                }
+                    var sx = getStartX();
+                    var sy = getStartY();
+                    var st = getStartT();
 
-                var traceRes = computeLocalDebugTrace(localDbg.startX, localDbg.startY, localDbg.startT);
-                localDbg.states = traceRes.states || [];
-
-                if (localDbg.active) {
-                    if (localDbg.index >= localDbg.states.length) {
-                        localDbg.index = Math.max(0, localDbg.states.length - 1);
+                    if (!localDbg.active) {
+                        localDbg.startX = sx;
+                        localDbg.startY = sy;
+                        localDbg.startT = st;
                     }
-                } else {
-                    localDbg.index = 0;
+
+                    var traceRes = computeLocalDebugTrace(localDbg.startX, localDbg.startY, localDbg.startT);
+                    localDbg.states = traceRes.states || [];
+
+                    if (localDbg.active) {
+                        if (localDbg.index >= localDbg.states.length) {
+                            localDbg.index = Math.max(0, localDbg.states.length - 1);
+                        }
+                        var newPreview = compressRemainingPositions(localDbg.states, localDbg.index);
+                        window.__injectNewPath = newPreview;
+                        if (typeof window.__ifRender === 'function') {
+                            window.__ifRender();
+                        }
+                    }
                 }
 
-                var newPreview = compressRemainingPositions(localDbg.states, localDbg.active ? localDbg.index : 0);
-                window.__injectNewPath = newPreview;
-
-                if (typeof window.__ifRender === 'function') {
-                    window.__ifRender();
+                if (syncNeeded) {
+                    window.__lastSyncedXml = xmlStr;
+                    if (window.javaBridge && typeof window.javaBridge.syncModel === 'function') {
+                        window.javaBridge.syncModel(xmlStr, false);
+                    }
                 }
             } else if (!hasBlocks && window.__lastObservedXml && window.__lastObservedXml.indexOf('<block') >= 0) {
                 window.__lastObservedXml = xmlStr;
@@ -1796,15 +1837,6 @@
                 window.__injectNewPath = [];
                 if (typeof window.__ifRender === 'function') {
                     window.__ifRender();
-                }
-            }
-
-            if (hasBlocks) {
-                if (xmlStr !== window.__lastSyncedXml) {
-                    window.__lastSyncedXml = xmlStr;
-                    if (window.javaBridge && typeof window.javaBridge.syncModel === 'function') {
-                        window.javaBridge.syncModel(xmlStr, false);
-                    }
                 }
             } else if (emptyWorkspacePollCount >= 2
                     && window.__lastSyncedXml

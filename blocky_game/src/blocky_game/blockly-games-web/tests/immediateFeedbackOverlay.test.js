@@ -54,6 +54,34 @@ describe('immediateFeedbackOverlay.test.js Test Suite', () => {
 
         const circles = gIfNew.querySelectorAll('circle');
         assert.strictEqual(circles.length, 3, 'Should render 3 circles for 3 path points');
+        assert.strictEqual(polyline.getAttribute('points'), '25,25 75,25 75,75', 'Should draw on cell centers (50*coord + 25)');
+    });
+
+    it('rendering the same path twice keeps the existing polyline node in place', async () => {
+        await new Promise(r => setTimeout(r, 150));
+        window.__injectNewPath = [[0, 0], [1, 0], [1, 1]];
+        window.__ifRender();
+
+        const gIfNew1 = window.document.getElementById('ifNew');
+        const poly1 = gIfNew1.querySelector('polyline');
+        assert.ok(poly1, 'Initial polyline must exist');
+
+        // Re-render with identical path points
+        window.__ifRender();
+
+        const gIfNew2 = window.document.getElementById('ifNew');
+        const poly2 = gIfNew2.querySelector('polyline');
+        assert.strictEqual(gIfNew1, gIfNew2, '<g id="ifNew"> element should remain unchanged');
+        assert.strictEqual(poly1, poly2, 'Polyline node reference should remain identical without being recreated');
+
+        // Change path points - should rebuild polyline
+        window.__injectNewPath = [[0, 0], [0, 1]];
+        window.__ifRender();
+
+        const gIfNew3 = window.document.getElementById('ifNew');
+        const poly3 = gIfNew3.querySelector('polyline');
+        assert.notStrictEqual(poly1, poly3, 'Polyline should be recreated when path points change');
+        assert.strictEqual(poly3.getAttribute('points'), '25,25 25,75');
     });
 
     it('renders DM comparison path overlay <g id="dmSol"> when DM mode is enabled', async () => {
