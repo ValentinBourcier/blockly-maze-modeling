@@ -18,6 +18,7 @@ import blocky.Level;
 import blocky.Loop;
 import blocky.SensorDirection;
 import blocky.Statement;
+import blocky_momot.SimulationEngine;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,29 +74,23 @@ public final class DebuggingService {
             startDir = Direction.NORTH;
         }
 
-        ExecutionTrace trace = BlockyFactory.eINSTANCE.createExecutionTrace();
-        List<String> logLines = new ArrayList<>();
-        GameState initialState = BlockyFactory.eINSTANCE.createGameState();
-        initialState.setStep(0);
-        initialState.setPosition(startCell);
-        initialState.setOrientation(startDir);
-        initialState.setStatus(GameStatus.RUNNING);
-        trace.getStates().add(initialState);
-        logLines.add("Start: (" + startCell.getX() + "," + startCell.getY() + ") dir=" + startDir);
-
         boolean enforceConstraints = Boolean.parseBoolean(System.getProperty("blocky.sim.enforceConstraints", "false"));
         if (enforceConstraints && SimUtils.violatesLevelConstraints(level, level.getSolution())) {
+            ExecutionTrace trace = BlockyFactory.eINSTANCE.createExecutionTrace();
+            List<String> logLines = new ArrayList<>();
+            GameState initialState = BlockyFactory.eINSTANCE.createGameState();
+            initialState.setStep(0);
+            initialState.setPosition(startCell);
+            initialState.setOrientation(startDir);
             initialState.setStatus(GameStatus.CRASHED);
+            trace.getStates().add(initialState);
+            logLines.add("Start: (" + (startCell != null ? startCell.getX() : 0) + "," + (startCell != null ? startCell.getY() : 0) + ") dir=" + startDir);
             logLines.add("Result: CRASH (Constraints violated)");
             return new DebugTraceResult(trace, extractStatePositions(trace), logLines);
         }
 
-        Body solution = level.getSolution();
-        if (solution != null) {
-            executeContainerChain(solution.getFirstContainer(), initialState, trace, map, logLines, winCellType);
-        }
-
-        return new DebugTraceResult(trace, extractStatePositions(trace), logLines);
+        SimulationEngine.SimulationResult simResult = SimulationEngine.simulate(map, startCell, startDir, level.getSolution(), winCellType);
+        return new DebugTraceResult(simResult.getTrace(), extractStatePositions(simResult.getTrace()), simResult.getLogs());
     }
 
     /**
@@ -252,203 +247,32 @@ public final class DebuggingService {
         return null;
     }
 
-    private static SensorDirection conditionKindToSensor(ConditionKind ck) {
-        // Align with MoMoT headless simulator defaults: missing condition behaves as CHECK_FORWARD.
-        if (ck == null) ck = ConditionKind.CHECK_FORWARD;
-        if (ck == ConditionKind.CHECK_LEFT) return SensorDirection.LEFT;
-        if (ck == ConditionKind.CHECK_RIGHT) return SensorDirection.RIGHT;
-        return SensorDirection.AHEAD;
+    public static SensorDirection conditionKindToSensor(ConditionKind ck) {
+        return SimulationEngine.conditionKindToSensor(ck);
     }
 
-    private static boolean checkCondition(GameState state, ConditionKind ck) {
-        return checkSensor(state, conditionKindToSensor(ck));
+    public static boolean checkCondition(GameState state, ConditionKind ck) {
+        return SimulationEngine.checkCondition(state, ck);
     }
 
-    private static GameState executeContainerChain(
-            Container first,
-            GameState state,
-            ExecutionTrace trace,
-            GridMap map,
-            List<String> logLines,
-            CellType winCellType) {
-        Container current = first;
-        GameState last = state;
-        while (current != null && last.getStatus() == GameStatus.RUNNING && last.getPosition().getType() != winCellType) {
-            Statement stmt = current.getStatement();
-            last = executeSingle(stmt, last, trace, map, logLines, winCellType);
-            current = current.getNext();
-        }
-        return last;
+    public static boolean checkSensor(GameState state, SensorDirection sensor) {
+        return SimulationEngine.checkSensor(state, sensor);
     }
 
-    private static GameState executeSingle(
-            Statement stmt,
-            GameState prev,
-            ExecutionTrace trace,
-            GridMap map,
-            List<String> logLines,
-            CellType winCellType) {
-        GameState next = BlockyFactory.eINSTANCE.createGameState();
-        next.setStep(prev.getStep() + 1);
-        next.setOrientation(prev.getOrientation());
-        next.setPosition(prev.getPosition());
-        next.setStatus(GameStatus.RUNNING);
-        next.setExecutingStatement(stmt);
-        next.setPrevious(prev);
-        trace.getStates().add(next);
-
-        if (stmt == null) {
-            if (logLines != null) {
-                logLines.add("Step " + next.getStep() + ": (empty)");
-            }
-            return next; // empty container -> no-op
-        }
-
-        if (stmt instanceof AtomicStatement) {
-            AtomicStatement a = (AtomicStatement) stmt;
-            // Align with MoMoT headless simulator defaults: missing kind behaves as TURN_LEFT.
-            AtomicStatementKind kind = a.getKind();
-            if (kind == null) kind = AtomicStatementKind.TURN_LEFT;
-            switch (kind) {
-            case MOVE_FORWARD: {
-                Cell target = getAdjacent(next.getPosition(), next.getOrientation());
-                if (target == null || target.getType() == CellType.WALL) {
-                    next.setStatus(GameStatus.CRASHED);
-                    if (logLines != null) {
-                        logLines.add("Step " + next.getStep() + ": MoveForward -> CRASH at (" + safeX(next.getPosition()) + "," + safeY(next.getPosition()) + ")");
-                    }
-                } else {
-                    next.setPosition(target);
-                    if (target.getType() == winCellType) {
-                        next.setStatus(GameStatus.WON);
-                        if (logLines != null) {
-                            logLines.add("Step " + next.getStep() + ": MoveForward -> (" + target.getX() + "," + target.getY() + ") GOAL");
-                        }
-                    } else {
-                        if (logLines != null) {
-                            logLines.add("Step " + next.getStep() + ": MoveForward -> (" + target.getX() + "," + target.getY() + ")");
-                        }
-                    }
-                }
-                break;
-            }
-            case TURN_LEFT: {
-                Direction before = next.getOrientation();
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.LEFT));
-                if (logLines != null) {
-                    logLines.add("Step " + next.getStep() + ": TurnLeft -> " + before + "→" + next.getOrientation());
-                }
-                break;
-            }
-            case TURN_RIGHT: {
-                Direction before = next.getOrientation();
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.RIGHT));
-                if (logLines != null) {
-                    logLines.add("Step " + next.getStep() + ": TurnRight -> " + before + "→" + next.getOrientation());
-                }
-                break;
-            }
-            default:
-                break;
-            }
-        } else if (stmt instanceof Loop) {
-            Loop r = (Loop) stmt;
-            GameState loop = next;
-            if (logLines != null) {
-                logLines.add("Step " + next.getStep() + ": Loop");
-            }
-            int maxSteps = map.getWidth() * map.getHeight() * 2;
-            while (loop.getStatus() == GameStatus.RUNNING && loop.getPosition().getType() != winCellType) {
-                if (loop.getStep() > maxSteps) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-                int previousStep = loop.getStep();
-                // Loop body is a real Loop in the model: execute it once per iteration.
-                Body b = r.getBody();
-                loop = executeContainerChain(b != null ? b.getFirstContainer() : null, loop, trace, map, logLines, winCellType);
-                if (loop.getStep() == previousStep) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-            }
-            return loop;
-        } else if (stmt instanceof IfStmt) {
-            IfStmt i = (IfStmt) stmt;
-            boolean cond = checkCondition(next, i.getCondition());
-            if (logLines != null) {
-                String branch = cond ? "then" : (i.getElseBody() != null ? "else" : "skip");
-                logLines.add("Step " + next.getStep() + ": If " + conditionKindToSensor(i.getCondition()) + " -> " + cond + " (" + branch + ")");
-            }
-            if (cond) {
-                Body b = i.getThenBody();
-                return executeContainerChain(b != null ? b.getFirstContainer() : null, next, trace, map, logLines, winCellType);
-            }
-            if (i.getElseBody() != null) {
-                Body b = i.getElseBody();
-                return executeContainerChain(b != null ? b.getFirstContainer() : null, next, trace, map, logLines, winCellType);
-            }
-        }
-
-        return next;
+    public static Cell getAdjacent(Cell c, Direction d) {
+        return SimulationEngine.getAdjacent(c, d);
     }
 
-
-    private static int safeX(Cell c) {
-        return c != null ? c.getX() : 0;
+    public static Direction getRelativeDir(Direction curr, SensorDirection sensor) {
+        return SimulationEngine.getRelativeDir(curr, sensor);
     }
 
-    private static int safeY(Cell c) {
-        return c != null ? c.getY() : 0;
+    public static int safeX(Cell c) {
+        return SimulationEngine.safeX(c);
     }
 
-    private static boolean checkSensor(GameState state, SensorDirection sensor) {
-        Direction actual = getRelativeDir(state.getOrientation(), sensor);
-        Cell target = getAdjacent(state.getPosition(), actual);
-        return target != null && target.getType() != CellType.WALL;
-    }
-
-    private static Cell getAdjacent(Cell c, Direction d) {
-        if (c == null || d == null) return null;
-        switch (d) {
-            case NORTH:
-                return c.getTop();
-            case SOUTH:
-                return c.getBottom();
-            case EAST:
-                return c.getRight();
-            case WEST:
-                return c.getLeft();
-        }
-        return null;
-    }
-
-    private static Direction getRelativeDir(Direction curr, SensorDirection sensor) {
-        if (sensor == SensorDirection.AHEAD) return curr;
-        if (sensor == SensorDirection.LEFT) {
-            switch (curr) {
-                case NORTH:
-                    return Direction.WEST;
-                case WEST:
-                    return Direction.SOUTH;
-                case SOUTH:
-                    return Direction.EAST;
-                case EAST:
-                    return Direction.NORTH;
-            }
-        } else {
-            switch (curr) {
-                case NORTH:
-                    return Direction.EAST;
-                case EAST:
-                    return Direction.SOUTH;
-                case SOUTH:
-                    return Direction.WEST;
-                case WEST:
-                    return Direction.NORTH;
-            }
-        }
-        return curr;
+    public static int safeY(Cell c) {
+        return SimulationEngine.safeY(c);
     }
 }
 

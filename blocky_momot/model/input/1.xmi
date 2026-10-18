@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ASCII"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <blocky:Game xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:blocky="http://www.example.org/blocky">
   <levels title="Maze Level 1" id="1" startOrientation="EAST" maxBlocks="5">
     <map width="7" height="7">

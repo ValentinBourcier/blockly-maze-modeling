@@ -51,6 +51,8 @@ public final class MomotFirstGoalBenchmarkRunner {
         System.out.println("[FirstGoalBenchmark] populationSize=" + popSize
                 + " iterations=" + iterations
                 + " maxEvaluations=" + maxEval);
+        System.out.println("[FirstGoalBenchmark] algorithm=" + System.getProperty("blocky.algorithm", "NSGA_II")
+                + " solutionLengthFactor=" + parseIntProperty("blocky.solutionLengthFactor", 1));
 
         MomotRunService.warmupRunnerClass();
 
@@ -117,7 +119,8 @@ public final class MomotFirstGoalBenchmarkRunner {
         String henshinPath = "../blocky_model/transformations/" + henshinName;
         System.setProperty("blocky.henshin", henshinPath);
 
-        int solLen = canonicalSolutionLengthForLevel(level);
+        // blocky.solutionLengthFactor (default 1) scales the canonical length, e.g. 2 for twice as long.
+        int solLen = canonicalSolutionLengthForLevel(level) * parseIntProperty("blocky.solutionLengthFactor", 1);
 
         List<RunResult> runResults = new ArrayList<>();
 
@@ -401,15 +404,49 @@ public final class MomotFirstGoalBenchmarkRunner {
     }
 
     public static String selectHenshinModuleForLevel(int level) {
-        if (level <= 2) {
-            return "statement_insertions_atomic_only.henshin";
-        } else if (level <= 5) {
-            return "statement_insertions_no_conds.henshin";
-        } else if (level <= 7) {
-            return "statement_insertions_no_else.henshin";
-        } else {
-            return "statement_insertions_henshin_text.henshin";
+        if (Boolean.getBoolean("blocky.rules.levelSpecific") || Boolean.getBoolean("blocky.levelLimits")) {
+            if (level <= 2) {
+                return "statement_insertions_atomic_only_edit_anywhere.henshin";
+            } else if (level <= 5) {
+                return withWrapMoves("statement_insertions_no_conds_edit_anywhere.henshin");
+            } else if (level <= 7) {
+                return withWrapMoves("statement_insertions_no_else_edit_anywhere.henshin");
+            }
         }
+        return withWrapMoves("statement_insertions_henshin_text_edit_anywhere.henshin");
+    }
+
+    public static String defaultHenshinModule() {
+        return withWrapMoves("statement_insertions_henshin_text_edit_anywhere.henshin");
+    }
+
+    /** A rule-set switch is on unless it is explicitly set to "false" (the switches only turn features off). */
+    private static boolean switchOn(String property) {
+        return !"false".equalsIgnoreCase(System.getProperty(property));
+    }
+
+    /** True unless -Dblocky.rules.wrap=false: the wrap/unwrap moves are part of the rule set. */
+    public static boolean wrapMovesEnabled() {
+        return switchOn("blocky.rules.wrap");
+    }
+
+    /**
+     * Picks the rule variant for a base module file name. On by default; each switch only turns its part off:
+     * -Dblocky.rules.editAnywhere=false keeps the file as given (no combined insert/delete/modify move) and
+     * -Dblocky.rules.wrap=false drops the *_wrap variant (wrap/unwrap moves, built by tools/henshin-prototype/run.sh wrap).
+     * There is no variant for atomic_only, no_loops and the _uri module.
+     */
+    public static String withWrapMoves(String henshinFile) {
+        if (henshinFile.contains("atomic_only") || henshinFile.contains("no_loops") || henshinFile.contains("_uri")) {
+            return henshinFile;
+        }
+        if (switchOn("blocky.rules.editAnywhere") && !henshinFile.contains("edit_anywhere")) {
+            henshinFile = henshinFile.replaceFirst("\\.henshin$", "_edit_anywhere.henshin");
+        }
+        if (!wrapMovesEnabled() || henshinFile.contains("_wrap")) {
+            return henshinFile;
+        }
+        return henshinFile.replaceFirst("\\.henshin$", "_wrap.henshin");
     }
 
     public static int canonicalSolutionLengthForLevel(int level) {

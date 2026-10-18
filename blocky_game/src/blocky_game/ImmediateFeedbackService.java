@@ -19,6 +19,7 @@ import blocky.Level;
 import blocky.Loop;
 import blocky.SensorDirection;
 import blocky.Statement;
+import blocky_momot.SimulationEngine;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,19 +118,30 @@ public final class ImmediateFeedbackService {
                 + "    function drawOverlay(id, path, color, offset, dash) { "
                 + "      var svg = document.getElementById('svgMaze'); "
                 + "      var old = document.getElementById(id); "
-                + "      if (old && old.parentNode) old.parentNode.removeChild(old); "
-                + "      if (!path || !path.length || !svg) return; "
+                + "      if (!path || !path.length || !svg) { "
+                + "        if (old && old.parentNode) old.parentNode.removeChild(old); "
+                + "        return; "
+                + "      } "
                 + "      var off = (typeof offset === 'number') ? offset : 25; "
+                + "      var pts = []; "
+                + "      for (var i=0; i<path.length; i++) { "
+                + "        pts.push((50*path[i][0]+off) + ',' + (50*path[i][1]+off)); "
+                + "      } "
+                + "      var ptsString = (path.length >= 2) ? pts.join(' ') : ''; "
+                + "      if (old) { "
+                + "        var existingKey = old.getAttribute('data-path-points'); "
+                + "        var existingPoly = old.querySelector('polyline'); "
+                + "        var polyMatches = (path.length >= 2) ? (existingPoly && existingPoly.getAttribute('points') === ptsString) : !existingPoly; "
+                + "        if (existingKey === ptsString && polyMatches) return; "
+                + "        if (old.parentNode) old.parentNode.removeChild(old); "
+                + "      } "
                 + "      var g = document.createElementNS(ns, 'g'); "
                 + "      g.setAttribute('id', id); "
                 + "      g.setAttribute('data-immediate-feedback', 'true'); "
+                + "      g.setAttribute('data-path-points', ptsString); "
                 + "      if (path.length >= 2) { "
-                + "        var pts = []; "
-                + "        for (var i=0; i<path.length; i++) { "
-                + "          pts.push((50*path[i][0]+off) + ',' + (50*path[i][1]+off)); "
-                + "        } "
                 + "        var poly = document.createElementNS(ns, 'polyline'); "
-                + "        poly.setAttribute('points', pts.join(' ')); "
+                + "        poly.setAttribute('points', ptsString); "
                 + "        poly.setAttribute('fill', 'none'); "
                 + "        poly.setAttribute('stroke', color); "
                 + "        poly.setAttribute('stroke-width', '7'); "
@@ -179,7 +191,7 @@ public final class ImmediateFeedbackService {
                 + "        } else { "
                 + "          var next = window.__injectNewPath || []; "
                 + "          var predictedFull = (next.length >= step) ? next.slice(step - 1) : []; "
-                + "          drawOverlay('ifNew', predictedFull, '#ff8c1a', 20, '10 6'); "
+                + "          drawOverlay('ifNew', predictedFull, '#ff8c1a', 25, '10 6'); "
                 + "          var op = document.getElementById('ifPast'); if (op && op.parentNode) op.parentNode.removeChild(op); "
                 + "          var oc2 = document.getElementById('ifCommon'); if (oc2 && oc2.parentNode) oc2.parentNode.removeChild(oc2); "
                 + "        } "
@@ -234,147 +246,6 @@ public final class ImmediateFeedbackService {
     }
 
     private static ExecutionTrace simulateExecutionTraceBody(Body solution, GridMap map, Cell startCell, Direction startDir, CellType winCellType) {
-        ExecutionTrace trace = BlockyFactory.eINSTANCE.createExecutionTrace();
-        GameState initialState = BlockyFactory.eINSTANCE.createGameState();
-        initialState.setStep(0);
-        initialState.setPosition(startCell);
-        initialState.setOrientation(startDir);
-        initialState.setStatus(GameStatus.RUNNING);
-        trace.getStates().add(initialState);
-
-        if (solution == null) return trace;
-
-        executeBody(solution, initialState, trace, map, winCellType);
-        return trace;
-    }
-
-    private static SensorDirection conditionKindToSensor(ConditionKind ck) {
-        if (ck == null) ck = ConditionKind.CHECK_FORWARD;
-        if (ck == ConditionKind.CHECK_LEFT) return SensorDirection.LEFT;
-        if (ck == ConditionKind.CHECK_RIGHT) return SensorDirection.RIGHT;
-        return SensorDirection.AHEAD;
-    }
-
-    private static boolean checkCondition(GameState state, ConditionKind ck) {
-        return checkSensor(state, conditionKindToSensor(ck));
-    }
-
-    private static GameState executeBody(Body body, GameState state, ExecutionTrace trace, GridMap map, CellType winCellType) {
-        if (body == null) return state;
-        return executeContainerChain(body.getFirstContainer(), state, trace, map, winCellType);
-    }
-
-    private static GameState executeContainerChain(Container first, GameState state, ExecutionTrace trace, GridMap map, CellType winCellType) {
-        Container current = first;
-        GameState last = state;
-        while (current != null && last.getStatus() == GameStatus.RUNNING) {
-            Statement stmt = current.getStatement();
-            last = executeSingle(stmt, last, trace, map, winCellType);
-            current = current.getNext();
-        }
-        return last;
-    }
-
-    private static GameState executeSingle(Statement stmt, GameState prev, ExecutionTrace trace, GridMap map, CellType winCellType) {
-        GameState next = BlockyFactory.eINSTANCE.createGameState();
-        next.setStep(prev.getStep() + 1);
-        next.setOrientation(prev.getOrientation());
-        next.setPosition(prev.getPosition());
-        next.setStatus(GameStatus.RUNNING);
-        next.setExecutingStatement(stmt);
-        next.setPrevious(prev);
-        trace.getStates().add(next);
-
-        if (stmt instanceof AtomicStatement) {
-            AtomicStatement a = (AtomicStatement) stmt;
-            AtomicStatementKind kind = a.getKind();
-            if (kind == null) kind = AtomicStatementKind.TURN_LEFT;
-            switch (kind) {
-            case MOVE_FORWARD: {
-                Cell target = getAdjacent(next.getPosition(), next.getOrientation());
-                if (target == null || target.getType() == CellType.WALL) {
-                    next.setStatus(GameStatus.CRASHED);
-                } else {
-                    next.setPosition(target);
-                    if (target.getType() == winCellType) {
-                        next.setStatus(GameStatus.WON);
-                    }
-                }
-                break;
-            }
-            case TURN_LEFT:
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.LEFT));
-                break;
-            case TURN_RIGHT:
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.RIGHT));
-                break;
-            default:
-                break;
-            }
-        } else if (stmt instanceof Loop) {
-            Loop r = (Loop) stmt;
-            GameState loop = next;
-            int maxSteps = map.getWidth() * map.getHeight() * 2;
-            while (loop.getStatus() == GameStatus.RUNNING && loop.getPosition().getType() != winCellType) {
-                if (loop.getStep() > maxSteps) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-                int previousStep = loop.getStep();
-                loop = executeBody(r.getBody(), loop, trace, map, winCellType);
-                if (loop.getStep() == previousStep) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-            }
-            return loop;
-        } else if (stmt instanceof IfStmt) {
-            IfStmt i = (IfStmt) stmt;
-            boolean cond = checkCondition(next, i.getCondition());
-            if (cond) {
-                return executeBody(i.getThenBody(), next, trace, map, winCellType);
-            }
-            if (i.getElseBody() != null) {
-                return executeBody(i.getElseBody(), next, trace, map, winCellType);
-            }
-        }
-        return next;
-    }
-
-    private static boolean checkSensor(GameState state, SensorDirection sensor) {
-        Direction actual = getRelativeDir(state.getOrientation(), sensor);
-        Cell target = getAdjacent(state.getPosition(), actual);
-        return target != null && target.getType() != CellType.WALL;
-    }
-
-    private static Cell getAdjacent(Cell c, Direction d) {
-        if (c == null || d == null) return null;
-        switch (d) {
-            case NORTH: return c.getTop();
-            case SOUTH: return c.getBottom();
-            case EAST: return c.getRight();
-            case WEST: return c.getLeft();
-        }
-        return null;
-    }
-
-    private static Direction getRelativeDir(Direction curr, SensorDirection sensor) {
-        if (sensor == SensorDirection.AHEAD) return curr;
-        if (sensor == SensorDirection.LEFT) {
-            switch (curr) {
-                case NORTH: return Direction.WEST;
-                case WEST: return Direction.SOUTH;
-                case SOUTH: return Direction.EAST;
-                case EAST: return Direction.NORTH;
-            }
-        } else {
-            switch (curr) {
-                case NORTH: return Direction.EAST;
-                case EAST: return Direction.SOUTH;
-                case SOUTH: return Direction.WEST;
-                case WEST: return Direction.NORTH;
-            }
-        }
-        return curr;
+        return SimulationEngine.simulate(map, startCell, startDir, solution, winCellType).getTrace();
     }
 }

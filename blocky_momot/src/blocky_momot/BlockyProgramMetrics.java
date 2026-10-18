@@ -50,6 +50,7 @@ public final class BlockyProgramMetrics {
             }
             return Math.max(1, existing + maxBlocks);
         } catch (Throwable t) {
+            System.err.println("[BlockyProgramMetrics] Could not load XMI for solution length inference (" + gameXmiPath + "): " + t.getMessage());
             return 10;
         }
     }
@@ -103,6 +104,11 @@ public final class BlockyProgramMetrics {
                     count += countStatements(((IfStmt) s).getThenBody());
                     count += countStatements(((IfStmt) s).getElseBody());
                 }
+                if (s instanceof Loop) {
+                    // A loop is terminal in Blockly (maze_forever has no next connection): the game never
+                    // shows statements after it, so they are not counted. Keeps the panel equal to the game.
+                    break;
+                }
             }
             c = c.getNext();
         }
@@ -151,6 +157,26 @@ public final class BlockyProgramMetrics {
         return count;
     }
 
+    private static File resolveFile(String path) {
+        if (path == null || path.isBlank()) return new File("blocky_game/model/input/1.xmi");
+        File f = new File(path);
+        if (f.isAbsolute() && f.exists()) return f;
+        if (f.exists()) return f;
+        File rel = new File(System.getProperty("user.dir"), path);
+        if (rel.exists()) return rel;
+        File f1 = new File("blocky_game", path);
+        if (f1.exists()) return f1;
+        File f2 = new File("blocky_momot", path);
+        if (f2.exists()) return f2;
+        File f3 = new File("/app", path);
+        if (f3.exists()) return f3;
+        File f4 = new File("blocky_game/model/input/1.xmi");
+        if (f4.exists()) return f4;
+        File f5 = new File("blocky_momot/model/input/1.xmi");
+        if (f5.exists()) return f5;
+        return f;
+    }
+
     private static Game loadGame(String path) {
         if (path == null || path.trim().isEmpty()) {
             return null;
@@ -166,25 +192,7 @@ public final class BlockyProgramMetrics {
             rs.getPackageRegistry().put(pkg.getNsURI(), pkg);
             rs.getPackageRegistry().put(pkg.getName(), pkg);
 
-            File f = new File(path);
-            if (!f.exists()) {
-                File rel = new File(System.getProperty("user.dir"), path);
-                if (rel.exists()) {
-                    f = rel;
-                }
-            }
-            if (!f.exists()) {
-                File inMomot = new File("blocky_momot", path);
-                if (inMomot.exists()) {
-                    f = inMomot;
-                } else {
-                    File inGame = new File("blocky_game", path);
-                    if (inGame.exists()) {
-                        f = inGame;
-                    }
-                }
-            }
-
+            File f = resolveFile(path);
             if (!f.exists() || !f.isFile()) {
                 return null;
             }
@@ -201,4 +209,3 @@ public final class BlockyProgramMetrics {
         }
     }
 }
-
