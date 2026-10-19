@@ -37,7 +37,7 @@ public class SearchHttpHandler {
     public static void sendCorsAndNoContent(HttpExchange exchange) throws IOException {
         exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
         exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, X-Session-ID, Authorization");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, X-Session-ID, Authorization, X-Timer-Session-ID, X-Level-ID");
         exchange.sendResponseHeaders(204, -1);
     }
 
@@ -45,7 +45,7 @@ public class SearchHttpHandler {
         exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
         exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
         exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
-        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, X-Session-ID, Authorization");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type, X-Session-ID, Authorization, X-Timer-Session-ID, X-Level-ID");
 
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(status, bytes.length);
@@ -108,7 +108,7 @@ public class SearchHttpHandler {
         Matcher mStr = pStr.matcher(json);
         if (mStr.find()) {
             String raw = mStr.group(1);
-            return raw.replace("\\\"", "\"").replace("\\\\", "\\").replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+            return raw.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t").replace("\\\"", "\"").replace("\\\\", "\\");
         }
 
         Pattern pNum = Pattern.compile("\"" + field + "\"\\s*:\\s*([0-9\\.]+)");
@@ -169,6 +169,11 @@ public class SearchHttpHandler {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    public static String extractSessionId(HttpExchange exchange, String body) {
+        SessionContext session = getSession(exchange, body);
+        return session != null ? session.getSessionId() : null;
     }
 
     public static String extractTimerSessionId(HttpExchange exchange, String body) {

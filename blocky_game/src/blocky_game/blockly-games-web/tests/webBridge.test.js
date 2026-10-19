@@ -70,6 +70,9 @@ describe('webBridge.js Test Suite', () => {
     });
 
     afterEach(() => {
+        if (window && window.__webBridgeCleanup) {
+            try { window.__webBridgeCleanup(); } catch (e) {}
+        }
         if (dom && dom.window) {
             dom.window.close();
         }
@@ -397,5 +400,117 @@ describe('webBridge.js Test Suite', () => {
         assert.strictEqual(window.localStorage.getItem('maze1'), null, 'localStorage maze cache must be cleared');
         const emptySync = syncCalls.find(c => c.allowEmpty === true);
         assert.ok(emptySync, 'An empty sync with allowEmpty must be sent instead');
+    });
+
+    it('an older simulation response does not replace a newer path', async () => {
+        let callCount = 0;
+        let resolveFirst;
+        const firstPromise = new Promise(resolve => { resolveFirst = resolve; });
+
+        window.fetch = async (url, options = {}) => {
+            if (url.includes('/api/simulation/run')) {
+                callCount++;
+                if (callCount === 1) {
+                    // Slower older response
+                    await firstPromise;
+                    return {
+                        json: async () => ({
+                            status: 'ok',
+                            newPath: [[0, 0], [1, 0]],
+                            memory: 5,
+                            power: 5
+                        })
+                    };
+                } else {
+                    // Newer faster response
+                    return {
+                        json: async () => ({
+                            status: 'ok',
+                            newPath: [[0, 0], [1, 0], [2, 0]],
+                            memory: 6,
+                            power: 6
+                        })
+                    };
+                }
+            }
+            if (url.includes('/api/session/sync')) {
+                return { json: async () => ({ status: 'ok' }) };
+            }
+            return { json: async () => ({ status: 'ok' }) };
+        };
+
+        // First sync triggers call 1
+        window.javaBridge.syncModel('<xml><block type="maze_moveForward"></block></xml>');
+        await new Promise(r => setTimeout(r, 20));
+
+        // Second sync triggers call 2, which completes immediately
+        window.javaBridge.syncModel('<xml><block type="maze_moveForward"><next><block type="maze_moveForward"></block></next></block></xml>');
+        await new Promise(r => setTimeout(r, 50));
+
+        assert.deepStrictEqual(window.__injectNewPath, [[0, 0], [1, 0], [2, 0]], 'Newer response path should be set');
+
+        // Now older first response finishes
+        resolveFirst();
+        await new Promise(r => setTimeout(r, 50));
+
+        assert.deepStrictEqual(window.__injectNewPath, [[0, 0], [1, 0], [2, 0]], 'Older response must not overwrite newer path');
+    });
+
+    it('on maze-original, an XML change that only moves a block does not clear __runPathShown', () => {
+        window.BLOCKY_LIVE_PATH = false;
+        window.__runPathShown = true;
+
+        const xmlPos1 = '<xml><block type="maze_moveForward" id="b1" x="50" y="50"></block></xml>';
+        window.__lastObservedXml = xmlPos1;
+        window.__lastSyncedXml = xmlPos1;
+
+        // User drags block: position coordinates change from (50, 50) to (120, 150)
+        const xmlPos2 = '<xml><block type="maze_moveForward" id="b1" x="120" y="150"></block></xml>';
+        window.BlocklyInterface = {
+            getCode: () => xmlPos2
+        };
+
+        window.__updateWorkspaceAndTrace();
+        assert.strictEqual(window.__runPathShown, true, 'Moving a block must not clear __runPathShown');
+
+        // User changes block structure / type: program changed!
+        const xmlChanged = '<xml><block type="maze_turn" id="b2"><field name="DIR">turnRight</field></block></xml>';
+        window.BlocklyInterface = {
+            getCode: () => xmlChanged
+        };
+
+        window.__updateWorkspaceAndTrace();
+        assert.strictEqual(window.__runPathShown, false, 'Modifying program structure must clear __runPathShown on maze-original');
+    });
+
+    it('loadMomotSolution detects unchanged blocks on embedded maze using h.K.qn and h.K.Mc', async () => {
+        let statusSet = null;
+        window.__momotSetStatus = (msg) => { statusSet = msg; };
+
+        const testXml = '<xml><block type="maze_moveForward" id="x1" x="10" y="20"></block></xml>';
+        window.h = {
+            K: {
+                qn: () => ({}),
+                Mc: () => testXml
+            }
+        };
+
+        window.fetch = async (url) => {
+            if (url.includes('/api/momot/load')) {
+                return {
+                    json: async () => ({
+                        status: 'ok',
+                        xml: '<xml><block type="maze_moveForward" id="diffId" x="50" y="80"></block></xml>',
+                        modelName: 'level9_sol_1.xmi'
+                    })
+                };
+            }
+            return { json: async () => ({ status: 'ok' }) };
+        };
+
+        window.javaBridge.loadMomotSolution('models/level9_sol_1.xmi');
+        await new Promise(r => setTimeout(r, 60));
+
+        assert.strictEqual(statusSet, 'Loaded level9_sol_1.xmi (blocks unchanged)', 'Status should report blocks unchanged using h.K.qn/Mc serialization');
     });
 });

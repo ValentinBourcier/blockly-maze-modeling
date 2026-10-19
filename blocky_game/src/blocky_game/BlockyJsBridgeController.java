@@ -308,6 +308,14 @@ public class BlockyJsBridgeController {
             }
         }
 
+        public void injectCompleteWithGen(long gen) {
+            if (momotCoordinator != null && gen > 0 && gen != momotCoordinator.getLoadRequestGeneration()) {
+                System.out.println("[JSBridge] injectCompleteWithGen ignored superseded gen=" + gen + " current=" + momotCoordinator.getLoadRequestGeneration());
+                return;
+            }
+            injectComplete();
+        }
+
         public void injectComplete() {
             awaitingInjectComplete = false;
             suppressSync = false;
@@ -499,7 +507,10 @@ public class BlockyJsBridgeController {
             }
 
             if (oldLevelId != newLevelId && momotCoordinator != null) {
-                momotCoordinator.onLevelChanged();
+                int runLvl = momotCoordinator.getMomotRunLevelId();
+                if (runLvl == -1 || runLvl != newLevelId) {
+                    momotCoordinator.onLevelChanged();
+                }
             }
         }
 

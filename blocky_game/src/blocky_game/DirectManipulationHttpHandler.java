@@ -87,6 +87,23 @@ public class DirectManipulationHttpHandler {
                 String timerSid = SearchHttpHandler.extractTimerSessionId(exchange, body);
                 int levelId = SearchHttpHandler.extractLevelId(exchange, body, session);
                 boolean recordExecution = SearchHttpHandler.parseJsonBooleanField(body, "recordExecution", false);
+                long epoch = SearchHttpHandler.parseJsonLongField(body, "epoch", 0L);
+                String xml = SearchHttpHandler.parseJsonField(body, "xml");
+                String metaJson = SearchHttpHandler.parseJsonObjectOrString(body, "meta");
+
+                Level currentLevel = session.getEngine().getCurrentLevel();
+                if (metaJson != null && !metaJson.trim().isEmpty()) {
+                    session.syncLevelMeta(epoch, metaJson);
+                }
+
+                if (xml != null) {
+                    if (xml.indexOf("<block") >= 0) {
+                        session.syncModel(epoch, xml, false);
+                    } else if (xml.trim().isEmpty() || xml.contains("<xml")) {
+                        session.syncModel(epoch, xml, true);
+                    }
+                }
+
                 if (timerSid != null && recordExecution && telemetry != null) {
                     telemetry.recordActivity(timerSid, levelId, TelemetryService.ActivityType.PROGRAM_RUN);
                     String variant = SearchHttpHandler.parseJsonField(body, "variant");
@@ -97,7 +114,6 @@ public class DirectManipulationHttpHandler {
                     if (timestamp == null || timestamp.trim().isEmpty()) {
                         timestamp = java.time.Instant.now().toString();
                     }
-                    String xml = SearchHttpHandler.parseJsonField(body, "xml");
                     if (xml == null || xml.trim().isEmpty()) {
                         Level curLvl = session.getEngine().getCurrentLevel();
                         if (curLvl != null) {
@@ -137,17 +153,19 @@ public class DirectManipulationHttpHandler {
                     sb.append("\"").append(SearchHttpHandler.escapeJson(logs.get(i))).append("\"");
                 }
                 // Live consumption readout: same functions as the MoMoT objectives Blocks (memory) and
-                // Actions (power), but without the goal gate. Values >= 100000 are the "not available"
-                // penalty (the panel shows '-' for them), sent as -1.
+                // Actions (power), but without the goal gate.
                 int memory = -1;
                 int power = -1;
                 if (level != null) {
                     memory = blocky_momot.BlockyProgramMetrics.countStatements(level.getSolution());
                     power = blocky_momot.BlockySimulator.simulationSteps(level);
-                    if (memory >= 100000) memory = -1;
-                    if (power >= 100000) power = -1;
                 }
                 sb.append("],\"memory\":").append(memory).append(",\"power\":").append(power);
+                boolean goalReached = logs != null && logs.contains("Result: GOAL");
+                if (level == null || level.getId() != levelId) {
+                    goalReached = false;
+                }
+                sb.append(",\"goalReached\":").append(goalReached);
                 sb.append(",\"newPath\":").append(pathSb.toString()).append("}");
                 SearchHttpHandler.sendJson(exchange, 200, sb.toString());
             } catch (Exception e) {

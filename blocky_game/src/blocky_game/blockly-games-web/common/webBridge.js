@@ -49,6 +49,33 @@
     // Bump epoch once per page load/initialization
     incrementSyncEpoch();
 
+    var currentPathToken = (typeof window.__blockyPathToken === 'number') ? window.__blockyPathToken : 0;
+
+    function nextPathToken() {
+        currentPathToken = (((typeof window.__blockyPathToken === 'number') ? window.__blockyPathToken : currentPathToken) + 1) >>> 0;
+        window.__blockyPathToken = currentPathToken;
+        return currentPathToken;
+    }
+
+    function isLatestPathToken(tok) {
+        return tok === window.__blockyPathToken;
+    }
+
+    window.__nextPathToken = nextPathToken;
+    window.__isLatestPathToken = isLatestPathToken;
+
+    function stripBlockPositionsAndIds(xml) {
+        if (!xml || typeof xml !== 'string') return '';
+        return xml
+            .replace(/<[^>]+>/g, function(tag) {
+                return tag.replace(/\s+(?:x|y|id)\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+            })
+            .replace(/>\s+</g, '><')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+    window.__stripBlockPositionsAndIds = stripBlockPositionsAndIds;
+
     function clearWorkspaceBlocks() {
         try {
             var ws = (window.BlocklyInterface && window.BlocklyInterface.getWorkspace && window.BlocklyInterface.getWorkspace()) ||
@@ -783,7 +810,6 @@
         }
 
         var newPreview = compressRemainingPositions(states, localDbg.active ? localDbg.index : 0);
-        window.__injectNewPath = newPreview;
 
         return { states: states };
     }
@@ -921,6 +947,7 @@
             var hasBlocks = xml && xml.indexOf('<block') >= 0;
             if (!hasBlocks && !allowEmpty) return;
             window.__lastSyncedXml = xml || '';
+            var token = nextPathToken();
             var epoch = getSyncEpoch();
             var info = getTimerSessionInfo();
             getSessionId(function(sid) {
@@ -963,11 +990,16 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     noteRunLevel(data);
-                    if (data && data.newPath) {
+                    if (!isLatestPathToken(token)) return;
+                    if (data) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
-                            window.__injectNewPath = data.newPath;
-                            if (!liveFeedbackOff() && typeof window.__consumptionUpdate === 'function') {
+                            if (data.newPath) {
+                                window.__injectNewPath = data.newPath;
+                            }
+                            if (typeof data.memory === 'number' && data.memory >= 0 &&
+                                typeof data.power === 'number' && data.power >= 0 &&
+                                !liveFeedbackOff() && typeof window.__consumptionUpdate === 'function') {
                                 window.__consumptionUpdate(data.memory, data.power);
                             }
                             if (typeof window.__ifRender === 'function') {
@@ -1037,6 +1069,7 @@
         },
 
         runSimulation: function() {
+            var token = nextPathToken();
             var info = getTimerSessionInfo();
             getSessionId(function(sid) {
                 if (!sid) return;
@@ -1050,15 +1083,23 @@
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    if (!isLatestPathToken(token)) return;
                     if (!localDbg.active && data && data.logs && window.__execLogAppend) {
                         window.__execLogAppend(data.logs);
                     }
-                    if (data && data.newPath) {
+                    if (data) {
                         var frontendK = (typeof window.K === 'number') ? window.K : 1;
                         if (data.levelId === undefined || data.levelId === frontendK) {
-                            window.__runPathShown = true; // Run Program: this is the explicit run (BLOCKY_LIVE_PATH)
-                            window.__injectNewPath = data.newPath;
-                            if (typeof window.__consumptionUpdate === 'function') {
+                            if (data.newPath) {
+                                window.__runPathShown = true; // Run Program: this is the explicit run (BLOCKY_LIVE_PATH)
+                                window.__injectNewPath = data.newPath;
+                            }
+                            if (typeof window.__lastObservedXml !== 'undefined') {
+                                window.__lastObservedXml = getCurrentWorkspaceXml();
+                            }
+                            if (typeof data.memory === 'number' && data.memory >= 0 &&
+                                typeof data.power === 'number' && data.power >= 0 &&
+                                typeof window.__consumptionUpdate === 'function') {
                                 window.__consumptionUpdate(data.memory, data.power);
                             }
                             if (typeof window.__ifRender === 'function') {
@@ -1218,6 +1259,12 @@
 
         loadMomotSolution: function(modelPath) {
             var info = getTimerSessionInfo();
+            window.__momotWebLoadSeq = (window.__momotWebLoadSeq || 0) + 1;
+            var thisReqId = window.__momotWebLoadSeq;
+            var modelName = (modelPath || '').split(/[\/\\]/).pop();
+            if (typeof window.__momotSetStatus === 'function') {
+                window.__momotSetStatus('Loading ' + modelName + '...');
+            }
             getSessionId(function(sid) {
                 if (!sid) {
                     if (typeof window.__momotSetStatus === 'function') {
@@ -1235,6 +1282,9 @@
                     })
                 }).then(function(r) { return r.json(); })
                 .then(function(data) {
+                    if (thisReqId !== window.__momotWebLoadSeq) {
+                        return;
+                    }
                     if (data && data.status === 'ok') {
                         if (data.levelId !== undefined) {
                             window.K = data.levelId;
@@ -1259,23 +1309,47 @@
                         if (typeof window.$d === 'function') {
                             try { window.$d(false); } catch(eD) {}
                         }
+                        var unchanged = false;
                         if (data.xml) {
+                            var curXml = '';
+                            try {
+                                var ws = (window.BlocklyInterface && window.BlocklyInterface.getWorkspace && window.BlocklyInterface.getWorkspace()) ||
+                                         (window.Blockly && (window.Blockly.getMainWorkspace && window.Blockly.getMainWorkspace() || window.Blockly.mainWorkspace));
+                                var bK = (window.h && window.h.K) || (window.Blockly && window.Blockly.Xml);
+                                if (window.h && window.h.K && typeof window.h.K.qn === 'function' && typeof window.h.K.Mc === 'function') {
+                                    curXml = window.h.K.Mc(window.h.K.qn(ws));
+                                } else if (ws && bK) {
+                                    var dom = (typeof bK.workspaceToDom === 'function') ? bK.workspaceToDom(ws) :
+                                              (window.Blockly && window.Blockly.Xml && typeof window.Blockly.Xml.workspaceToDom === 'function' ? window.Blockly.Xml.workspaceToDom(ws) :
+                                              (window.h && window.h.K && typeof window.h.K.lf === 'function' ? window.h.K.lf(ws) : null));
+                                    if (dom) {
+                                        curXml = (typeof bK.domToText === 'function') ? bK.domToText(dom) : (new XMLSerializer().serializeToString(dom));
+                                    }
+                                }
+                            } catch(eX) {}
+                            function norm(s) {
+                                if (typeof stripBlockPositionsAndIds === 'function') return stripBlockPositionsAndIds(s);
+                                return (s || '').replace(/<[^>]+>/g, function(tag) {
+                                    return tag.replace(/\s+(?:x|y|id)\s*=\s*(?:"[^"]*"|'[^']*')/gi, '');
+                                }).replace(/>\s+</g, '><').replace(/\s+/g, ' ').trim();
+                            }
+                            unchanged = !!(curXml && data.xml && norm(curXml) === norm(data.xml));
                             applyXmlToWorkspace(data.xml);
                         }
                         if (typeof window.__momotSetStatus === 'function') {
-                            var modelName = (modelPath || '').split(/[\/\\]/).pop();
-                            window.__momotSetStatus('Loaded: ' + modelName);
+                            window.__momotSetStatus('Loaded ' + modelName + (unchanged ? ' (blocks unchanged)' : ''));
                         }
                     } else {
                         if (typeof window.__momotSetStatus === 'function') {
-                            window.__momotSetStatus('Failed to load model from server.');
+                            window.__momotSetStatus('Solution model file no longer exists: ' + modelName);
                         }
                     }
                 })
                 .catch(function(e) {
+                    if (thisReqId !== window.__momotWebLoadSeq) return;
                     console.error('[webBridge] loadMomotSolution error', e);
                     if (typeof window.__momotSetStatus === 'function') {
-                        window.__momotSetStatus('Load failed: ' + e);
+                        window.__momotSetStatus('Solution model file no longer exists: ' + modelName);
                     }
                 });
             });
@@ -1697,6 +1771,7 @@
             console.error('[webBridge] Error injecting solution XML:', e2);
         }
     }
+    window.applyXmlToWorkspace = applyXmlToWorkspace;
 
     function getCurrentWorkspaceXml() {
         try {
@@ -1747,36 +1822,47 @@
                 emptyWorkspacePollCount++;
             }
 
-            if (xmlStr && xmlStr !== window.__lastObservedXml) {
-                window.__lastObservedXml = xmlStr;
-                clearRunResultOnEdit();
+            var prevNorm = stripBlockPositionsAndIds(window.__lastObservedXml || '');
+            var currNorm = stripBlockPositionsAndIds(xmlStr || '');
+            var syncedNorm = stripBlockPositionsAndIds(window.__lastSyncedXml || '');
+            var programChanged = currNorm !== prevNorm;
+            var syncNeeded = currNorm !== syncedNorm;
 
-                var sx = getStartX();
-                var sy = getStartY();
-                var st = getStartT();
+            if (hasBlocks) {
+                if (programChanged) {
+                    window.__lastObservedXml = xmlStr;
+                    clearRunResultOnEdit();
 
-                if (!localDbg.active) {
-                    localDbg.startX = sx;
-                    localDbg.startY = sy;
-                    localDbg.startT = st;
-                }
+                    var sx = getStartX();
+                    var sy = getStartY();
+                    var st = getStartT();
 
-                var traceRes = computeLocalDebugTrace(localDbg.startX, localDbg.startY, localDbg.startT);
-                localDbg.states = traceRes.states || [];
-
-                if (localDbg.active) {
-                    if (localDbg.index >= localDbg.states.length) {
-                        localDbg.index = Math.max(0, localDbg.states.length - 1);
+                    if (!localDbg.active) {
+                        localDbg.startX = sx;
+                        localDbg.startY = sy;
+                        localDbg.startT = st;
                     }
-                } else {
-                    localDbg.index = 0;
+
+                    var traceRes = computeLocalDebugTrace(localDbg.startX, localDbg.startY, localDbg.startT);
+                    localDbg.states = traceRes.states || [];
+
+                    if (localDbg.active) {
+                        if (localDbg.index >= localDbg.states.length) {
+                            localDbg.index = Math.max(0, localDbg.states.length - 1);
+                        }
+                        var newPreview = compressRemainingPositions(localDbg.states, localDbg.index);
+                        window.__injectNewPath = newPreview;
+                        if (typeof window.__ifRender === 'function') {
+                            window.__ifRender();
+                        }
+                    }
                 }
 
-                var newPreview = compressRemainingPositions(localDbg.states, localDbg.active ? localDbg.index : 0);
-                window.__injectNewPath = newPreview;
-
-                if (typeof window.__ifRender === 'function') {
-                    window.__ifRender();
+                if (syncNeeded) {
+                    window.__lastSyncedXml = xmlStr;
+                    if (window.javaBridge && typeof window.javaBridge.syncModel === 'function') {
+                        window.javaBridge.syncModel(xmlStr, false);
+                    }
                 }
             } else if (!hasBlocks && window.__lastObservedXml && window.__lastObservedXml.indexOf('<block') >= 0) {
                 window.__lastObservedXml = xmlStr;
@@ -1784,15 +1870,6 @@
                 window.__injectNewPath = [];
                 if (typeof window.__ifRender === 'function') {
                     window.__ifRender();
-                }
-            }
-
-            if (hasBlocks) {
-                if (xmlStr !== window.__lastSyncedXml) {
-                    window.__lastSyncedXml = xmlStr;
-                    if (window.javaBridge && typeof window.javaBridge.syncModel === 'function') {
-                        window.javaBridge.syncModel(xmlStr, false);
-                    }
                 }
             } else if (emptyWorkspacePollCount >= 2
                     && window.__lastSyncedXml
@@ -1823,6 +1900,17 @@
     if (syncTimer && typeof syncTimer.unref === 'function') {
         syncTimer.unref();
     }
+
+    window.__webBridgeCleanup = function() {
+        if (syncTimer) {
+            clearInterval(syncTimer);
+            syncTimer = null;
+        }
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    };
 
     try {
         var ws = (window.BlocklyInterface && window.BlocklyInterface.getWorkspace && window.BlocklyInterface.getWorkspace()) ||

@@ -78,6 +78,46 @@
         }
     }
 
+    function isAllLevelsCompleted() {
+        try {
+            if (window.sessionStorage) {
+                return window.sessionStorage.getItem('blocky_all_levels_completed') === 'true';
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function isLevelSolved(lvl) {
+        var targetLvl = (typeof lvl === 'number') ? lvl : (typeof level === 'number' ? level : 1);
+        try {
+            if (window.sessionStorage) {
+                return window.sessionStorage.getItem('blocky_solved_level_' + targetLvl) === 'true';
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function markLevelSolved(lvl) {
+        var targetLvl = (typeof lvl === 'number') ? lvl : (typeof level === 'number' ? level : 1);
+        try {
+            if (window.sessionStorage) {
+                window.sessionStorage.setItem('blocky_solved_level_' + targetLvl, 'true');
+            }
+        } catch (e) {}
+        if (typeof window.__scoreboardMarkLastRunGoalReached === 'function') {
+            window.__scoreboardMarkLastRunGoalReached(targetLvl);
+        }
+        if (targetLvl === 10) {
+            try {
+                if (window.sessionStorage) {
+                    window.sessionStorage.setItem('blocky_all_levels_completed', 'true');
+                }
+            } catch (e) {}
+            showAllLevelsCompletedModal();
+        }
+        updateNextTaskButtonState();
+    }
+
     // Lock sequence: ensure URL matches active task level stored in sessionStorage.
     // A fresh session starts at level 1, even if URL has ?level=7.
     var storedLevel = getStoredLevel();
@@ -88,11 +128,13 @@
     } catch (e) {}
 
     var urlLevel = getLevel();
-    if (urlLevel !== storedLevel) {
+    if (urlLevel !== storedLevel && !isAllLevelsCompleted()) {
         var targetUrl = buildLevelUrl(storedLevel);
         navigateTo(targetUrl);
         return;
     }
+
+    var level = isAllLevelsCompleted() ? urlLevel : storedLevel;
 
     // Determine variant (original vs momot)
     function getVariant() {
@@ -205,7 +247,10 @@
                 for (var l = 1; l <= 10; l++) {
                     window.sessionStorage.removeItem(STORAGE_PREFIX + l);
                     window.sessionStorage.removeItem(STORAGE_VARIANT_PREFIX + l);
+                    window.sessionStorage.removeItem('blocky_solved_level_' + l);
+                    window.sessionStorage.removeItem('blocky_scoreboard_lvl_' + l);
                 }
+                window.sessionStorage.removeItem('blocky_all_levels_completed');
             }
         } catch (e) {}
     }
@@ -284,6 +329,26 @@
 
     function lockLevelHeaderLinks() {
         if (!document || !document.querySelectorAll) return;
+        if (isAllLevelsCompleted()) {
+            try {
+                var items = document.querySelectorAll('.level_dot, .level_number, span.level_dot, span.level_number');
+                for (var i = 0; i < items.length; i++) {
+                    var el = items[i];
+                    var lNum = i + 1;
+                    if (el.tagName && el.tagName.toLowerCase() === 'span') {
+                        var a = document.createElement('a');
+                        a.className = el.className;
+                        if (el.id) a.id = el.id;
+                        a.textContent = el.textContent || String(lNum);
+                        a.href = buildLevelUrl(lNum);
+                        if (el.parentNode) el.parentNode.replaceChild(a, el);
+                    } else if (el.tagName && el.tagName.toLowerCase() === 'a') {
+                        el.href = buildLevelUrl(lNum);
+                    }
+                }
+            } catch (e) {}
+            return;
+        }
         try {
             var anchors = document.querySelectorAll('a.level_dot, a.level_number');
             for (var i = 0; i < anchors.length; i++) {
@@ -299,6 +364,110 @@
         } catch (e) {}
     }
 
+    function showToast(msg) {
+        if (!document || !document.body) return;
+        var toast = document.getElementById('levelTimerToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'levelTimerToast';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.background = 'rgba(215, 58, 73, 0.95)';
+            toast.style.color = '#ffffff';
+            toast.style.padding = '8px 16px';
+            toast.style.borderRadius = '6px';
+            toast.style.fontSize = '13px';
+            toast.style.fontWeight = '600';
+            toast.style.zIndex = '1000002';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            toast.style.transition = 'opacity 0.3s ease';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        toast.style.display = 'block';
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.style.display = 'none'; }, 300);
+        }, 3000);
+    }
+
+    function updateNextTaskButtonState() {
+        if (!document) return;
+        var nextBtn = document.getElementById('timerNextTaskBtn');
+        if (!nextBtn) return;
+
+        var isSolved = isLevelSolved(level);
+        var isCompleted = isAllLevelsCompleted();
+        var isGated = !isSolved && !isCompleted;
+
+        if (isGated) {
+            nextBtn.disabled = true;
+            nextBtn.style.opacity = '0.5';
+            nextBtn.style.cursor = 'not-allowed';
+            nextBtn.title = 'Run a program that reaches the goal to unlock the next task';
+        } else {
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = '1';
+            nextBtn.style.cursor = 'pointer';
+            nextBtn.title = 'Next task';
+        }
+
+        var note = document.getElementById('timerGoalNote');
+        if (note) {
+            note.style.display = (isSolved || isCompleted) ? 'inline-block' : 'none';
+        }
+    }
+
+    function showAllLevelsCompletedModal() {
+        injectStyles();
+        var modal = document.getElementById('allLevelsCompletedModal');
+        if (!modal && document.body) {
+            modal = document.createElement('div');
+            modal.id = 'allLevelsCompletedModal';
+            modal.style.position = 'fixed';
+            modal.style.top = '0'; modal.style.left = '0'; modal.style.right = '0'; modal.style.bottom = '0';
+            modal.style.background = 'rgba(0,0,0,0.6)';
+            modal.style.zIndex = '1000001';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+            modal.innerHTML = [
+                '<div class="level-timer-modal-box" style="width: 440px;">',
+                '  <h3>All 10 Levels Completed!</h3>',
+                '  <p>Congratulations! You have completed all tasks in the study.</p>',
+                '  <p style="font-size: 12px; color: #57606a;">You can conclude your session to view your final report or stay to freely revisit and improve earlier levels.</p>',
+                '  <div class="level-timer-actions" style="margin-top: 16px;">',
+                '    <button type="button" class="timer-btn-secondary" id="allLevelsImproveBtn">Improve Previous Solutions</button>',
+                '    <button type="button" class="timer-btn-primary" id="allLevelsConcludeBtn">Conclude Session</button>',
+                '  </div>',
+                '</div>'
+            ].join('');
+            document.body.appendChild(modal);
+
+            var improveBtn = document.getElementById('allLevelsImproveBtn');
+            if (improveBtn) {
+                improveBtn.onclick = function() {
+                    modal.style.display = 'none';
+                    lockLevelHeaderLinks();
+                };
+            }
+            var concludeBtn = document.getElementById('allLevelsConcludeBtn');
+            if (concludeBtn) {
+                concludeBtn.onclick = function() {
+                    modal.style.display = 'none';
+                    showSessionReport();
+                };
+            }
+        } else if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
     var headerObserver = null;
     var headerObserverTimeout = null;
 
@@ -310,17 +479,6 @@
             });
             try {
                 headerObserver.observe(document.body, { childList: true, subtree: true });
-                headerObserverTimeout = setTimeout(function() {
-                    try {
-                        if (headerObserver) {
-                            headerObserver.disconnect();
-                            headerObserver = null;
-                        }
-                    } catch (e) {}
-                }, 20000);
-                if (headerObserverTimeout && typeof headerObserverTimeout.unref === 'function') {
-                    headerObserverTimeout.unref();
-                }
             } catch (e) {}
         }
     }
@@ -351,9 +509,7 @@
 
         // Maze assigns these methods, then keeps using the same object.
         // Lock them so a later assignment cannot restore the next-level dialog.
-        lockMethod(dialogs, 'Xy', function() {
-            showGoalReachedNote();
-        });
+        lockMethod(dialogs, 'Xy', function() {});
         lockMethod(dialogs, 'Zs', function() {});
         lockMethod(dialogs, 'vt', function(e) {
             if (e && (e.keyCode === 13 || e.keyCode === 27 || e.keyCode === 32)) {
@@ -427,7 +583,96 @@
         return null;
     }
 
+    function renderConfirmModalRuns(modal) {
+        if (!modal) return;
+        var container = modal.querySelector('#levelTimerConfirmRunsContainer');
+        if (!container) {
+            var box = modal.querySelector('.level-timer-modal-box');
+            var actions = modal.querySelector('.level-timer-actions');
+            if (box && actions) {
+                container = document.createElement('div');
+                container.id = 'levelTimerConfirmRunsContainer';
+                box.insertBefore(container, actions);
+            }
+        }
+        if (!container) return;
+
+        var goalRuns = [];
+        if (typeof window.__scoreboardGetRuns === 'function') {
+            try {
+                var runs = window.__scoreboardGetRuns(level);
+                if (Array.isArray(runs)) {
+                    for (var i = 0; i < runs.length; i++) {
+                        if (runs[i] && runs[i].goalReached) {
+                            goalRuns.push(runs[i]);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('[levelTimer] Failed to get scoreboard runs:', e);
+            }
+        }
+
+        if (goalRuns.length === 0) {
+            container.innerHTML = '<div class="level-timer-confirm-empty" style="text-align: center; color: #57606a; padding: 14px 8px; margin: 10px 0 16px 0; background: #f6f8fa; border-radius: 6px; font-size: 13px; border: 1px dashed #d0d7de;">No goal-reaching solutions for this level yet.</div>';
+            return;
+        }
+
+        var html = [
+            '<div class="level-timer-confirm-table-wrapper" style="max-height: 220px; overflow-y: auto; margin: 10px 0 16px 0; border: 1px solid #d0d7de; border-radius: 6px;">',
+            '  <table class="level-timer-confirm-table" style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">',
+            '    <thead>',
+            '      <tr style="background: #f6f8fa; border-bottom: 1px solid #d0d7de; color: #57606a;">',
+            '        <th style="padding: 6px 10px; font-weight: 600;">Run #</th>',
+            '        <th style="padding: 6px 10px; font-weight: 600; color: #b45309;">Power (kW)</th>',
+            '        <th style="padding: 6px 10px; font-weight: 600; color: #0284c7;">Memory (kB)</th>',
+            '        <th style="padding: 6px 10px; font-weight: 600; text-align: center;">Action</th>',
+            '      </tr>',
+            '    </thead>',
+            '    <tbody id="levelTimerConfirmTableBody">'
+        ];
+
+        for (var j = 0; j < goalRuns.length; j++) {
+            var r = goalRuns[j];
+            var powDisplay = (typeof r.power === 'number' && !isNaN(r.power) && r.power >= 0) ? (r.power + ' kW') : '-';
+            var memDisplay = (typeof r.memory === 'number' && !isNaN(r.memory) && r.memory >= 0) ? (r.memory + ' kB') : '-';
+            html.push(
+                '      <tr data-run-id="' + r.id + '" style="border-bottom: 1px solid #eaecef;">',
+                '        <td style="padding: 6px 10px; font-weight: 600;">#' + r.id + '</td>',
+                '        <td style="padding: 6px 10px; color: #b45309;">' + powDisplay + '</td>',
+                '        <td style="padding: 6px 10px; color: #0284c7;">' + memDisplay + '</td>',
+                '        <td style="padding: 6px 10px; text-align: center;">',
+                '          <button type="button" class="scoreboard-load-btn timer-btn-secondary level-timer-load-btn" data-id="' + r.id + '" data-run-id="' + r.id + '" style="padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">Load</button>',
+                '        </td>',
+                '      </tr>'
+            );
+        }
+
+        html.push(
+            '    </tbody>',
+            '  </table>',
+            '</div>'
+        );
+        container.innerHTML = html.join('\n');
+
+        var loadBtns = container.querySelectorAll('.level-timer-load-btn');
+        for (var k = 0; k < loadBtns.length; k++) {
+            loadBtns[k].addEventListener('click', function(e) {
+                e.stopPropagation();
+                var runId = parseInt(this.getAttribute('data-id') || this.getAttribute('data-run-id'), 10);
+                if (typeof window.__scoreboardLoadRun === 'function') {
+                    window.__scoreboardLoadRun(runId, level);
+                }
+                modal.style.display = 'none';
+            });
+        }
+    }
+
     function confirmNextTask() {
+        if (!isLevelSolved(level) && !isAllLevelsCompleted()) {
+            showToast('Run a program that reaches the goal to unlock the next task.');
+            return;
+        }
         stopActiveMomotSearch();
         injectStyles();
         var modal = document.getElementById('levelTimerConfirmModal');
@@ -436,9 +681,10 @@
             modal.id = 'levelTimerConfirmModal';
             modal.style.display = 'flex';
             modal.innerHTML = [
-                '<div class="level-timer-modal-box">',
+                '<div class="level-timer-modal-box" style="width: 480px; max-width: 94vw;">',
                 '  <h3>Go to the next task?</h3>',
                 '  <p>Time on this task will be saved and the page will move to the next level.</p>',
+                '  <div id="levelTimerConfirmRunsContainer"></div>',
                 '  <div class="level-timer-actions">',
                 '    <button type="button" class="timer-btn-secondary" id="levelTimerConfirmStayBtn">Stay</button>',
                 '    <button type="button" class="timer-btn-primary" id="levelTimerConfirmNextBtn">Next task</button>',
@@ -464,11 +710,23 @@
                 });
             }
         } else if (modal) {
+            var box = modal.querySelector('.level-timer-modal-box');
+            if (box) {
+                box.style.width = '480px';
+                box.style.maxWidth = '94vw';
+            }
             modal.style.display = 'flex';
+        }
+        if (modal) {
+            renderConfirmModalRuns(modal);
         }
     }
 
     function goToNextTask() {
+        if (!isLevelSolved(level) && !isAllLevelsCompleted()) {
+            showToast('Run a program that reaches the goal to unlock the next task.');
+            return;
+        }
         saveSessionData();
         sendLevelTime(true);
         var pStop = stopActiveMomotSearch();
@@ -593,6 +851,48 @@
             '  justify-content: center;',
             '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;',
             '}',
+            '#levelTimerConfirmModal .level-timer-modal-box {',
+            '  width: 480px;',
+            '  max-width: 94vw;',
+            '}',
+            '.level-timer-confirm-empty {',
+            '  text-align: center;',
+            '  color: #57606a;',
+            '  padding: 14px 8px;',
+            '  margin: 10px 0 16px 0;',
+            '  background: #f6f8fa;',
+            '  border-radius: 6px;',
+            '  font-size: 13px;',
+            '  border: 1px dashed #d0d7de;',
+            '}',
+            '.level-timer-confirm-table-wrapper {',
+            '  max-height: 220px;',
+            '  overflow-y: auto;',
+            '  margin: 10px 0 16px 0;',
+            '  border: 1px solid #d0d7de;',
+            '  border-radius: 6px;',
+            '}',
+            '.level-timer-confirm-table {',
+            '  width: 100%;',
+            '  border-collapse: collapse;',
+            '  font-size: 12px;',
+            '  text-align: left;',
+            '}',
+            '.level-timer-confirm-table th, .level-timer-confirm-table td {',
+            '  padding: 6px 10px;',
+            '}',
+            '.level-timer-confirm-table th {',
+            '  background: #f6f8fa;',
+            '  border-bottom: 1px solid #d0d7de;',
+            '  font-weight: 600;',
+            '  color: #57606a;',
+            '}',
+            '.level-timer-confirm-table tr:not(:last-child) td {',
+            '  border-bottom: 1px solid #eaecef;',
+            '}',
+            '.level-timer-confirm-table tr:hover td {',
+            '  background: #f6f8fa;',
+            '}',
             '.level-timer-modal-box {',
             '  background: #ffffff;',
             '  padding: 22px 26px;',
@@ -692,17 +992,18 @@
     function ensureWidget() {
         injectStyles();
         var widget = document.getElementById('levelTimerWidget');
+        var finishBtnText = (isAllLevelsCompleted() && level < 10) ? 'Conclude Session' : 'Finish task';
         if (!widget && document.body) {
             widget = document.createElement('div');
             widget.id = 'levelTimerWidget';
-            var actionBtnHtml = level === 10 ?
-                '<button type="button" class="timer-btn timer-finish-btn" id="timerFinishSessionBtn" title="Finish task and view report">Finish task</button>' :
+            var actionBtnHtml = (level === 10 || isAllLevelsCompleted()) ?
+                '<button type="button" class="timer-btn timer-finish-btn" id="timerFinishSessionBtn" title="Finish task and view report">' + finishBtnText + '</button>' :
                 '<button type="button" class="timer-btn timer-next-btn" id="timerNextTaskBtn" title="Next task">Next task</button>';
             widget.innerHTML = [
                 '<span class="timer-session" id="timerSessionDisplay" title="' + (sessionId || '') + '">' + (userId || 'No Session') + '</span>',
                 '<span class="timer-level">Lvl ' + level + '</span>',
                 '<span class="timer-clock" id="timerClockDisplay" style="display: none;">' + formatDisplayTime(currentElapsedMs) + '</span>',
-                '<span class="timer-goal-note" id="timerGoalNote">Goal reached. You can keep improving this solution.</span>',
+                '<span class="timer-goal-note" id="timerGoalNote"' + ((isLevelSolved(level) || isAllLevelsCompleted()) ? ' style="display: inline-block;"' : ' style="display: none;"') + '>Goal reached. You can keep improving this solution.</span>',
                 actionBtnHtml,
                 '<button type="button" class="timer-btn" id="timerNewSessionBtn" title="Start a new session">New Session</button>'
             ].join('');
@@ -731,6 +1032,7 @@
                     promptUserForSession();
                 });
             }
+            updateNextTaskButtonState();
         } else if (widget) {
             var sessEl = document.getElementById('timerSessionDisplay');
             if (sessEl) {
@@ -741,18 +1043,22 @@
             if (clockEl) {
                 clockEl.textContent = formatDisplayTime(currentElapsedMs);
             }
+            var noteEl = document.getElementById('timerGoalNote');
+            if (noteEl) {
+                noteEl.style.display = (isLevelSolved(level) || isAllLevelsCompleted()) ? 'inline-block' : 'none';
+            }
             var newBtnRef = document.getElementById('timerNewSessionBtn');
             var existingNextBtn = document.getElementById('timerNextTaskBtn');
             var existingFinBtn = document.getElementById('timerFinishSessionBtn');
-            if (level === 10) {
-                if (existingNextBtn) existingNextBtn.remove();
+            if (level === 10 || isAllLevelsCompleted()) {
+                if (level === 10 && existingNextBtn) existingNextBtn.remove();
                 if (!existingFinBtn && newBtnRef) {
                     var btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'timer-btn timer-finish-btn';
                     btn.id = 'timerFinishSessionBtn';
                     btn.title = 'Finish task and view report';
-                    btn.textContent = 'Finish task';
+                    btn.textContent = 'Conclude Session';
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
                         showSessionReport();
@@ -775,6 +1081,7 @@
                     widget.insertBefore(nextB, newBtnRef);
                 }
             }
+            updateNextTaskButtonState();
         }
     }
 
@@ -1074,45 +1381,74 @@
     function recordProgramRun() {
         if (!sessionId) return;
         try {
-            var sid = null;
-            try { if (window.localStorage) sid = window.localStorage.getItem('blocky_session_id'); } catch (e) {}
-            var headers = {
-                'Content-Type': 'application/json',
-                'X-Timer-Session-ID': sessionId,
-                'X-Level-ID': String(level)
+            var doRun = function() {
+                var sid = null;
+                try { if (window.localStorage) sid = window.localStorage.getItem('blocky_session_id'); } catch (e) {}
+                var headers = {
+                    'Content-Type': 'application/json',
+                    'X-Timer-Session-ID': sessionId,
+                    'X-Level-ID': String(level)
+                };
+                if (sid) {
+                    headers['X-Session-ID'] = sid;
+                }
+                if (typeof fetch === 'function') {
+                    var nowIso = new Date().toISOString();
+                    var currentXml = getCurrentWorkspaceXml();
+                    var pathToken = (typeof window.__nextPathToken === 'function') ? window.__nextPathToken() : null;
+                    fetch('/api/simulation/run', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            timerSessionId: sessionId,
+                            level: level,
+                            recordExecution: true,
+                            variant: getVariant(),
+                            timestamp: nowIso,
+                            levelElapsedMs: Math.floor(currentElapsedMs),
+                            levelArrivedAt: getLevelArrivedAt(),
+                            xml: currentXml
+                        })
+                    }).then(function(r) {
+                        if (r.ok) return r.json();
+                    }).then(function(data) {
+                        var isLatest = (pathToken === null || typeof window.__isLatestPathToken !== 'function' || window.__isLatestPathToken(pathToken));
+                        if (isLatest && data && data.newPath && typeof window.__ifRender === 'function') {
+                            window.__runPathShown = true; // see BLOCKY_LIVE_PATH in blockyUIOverlay.js
+                            window.__injectNewPath = data.newPath;
+                            window.__ifRender();
+                        }
+                        // Run Program: keep the memory / power readout in step with the program that just ran.
+                        if (data && (data.levelId === undefined || data.levelId === level)) {
+                            if (typeof window.__lastObservedXml !== 'undefined') {
+                                window.__lastObservedXml = currentXml;
+                            }
+                            if (typeof data.memory === 'number' && data.memory >= 0 &&
+                                typeof data.power === 'number' && data.power >= 0) {
+                                if (typeof window.__consumptionUpdate === 'function') {
+                                    window.__consumptionUpdate(data.memory, data.power);
+                                }
+                                if (typeof window.__scoreboardAddRun === 'function') {
+                                    window.__scoreboardAddRun({
+                                        goalReached: !!data.goalReached,
+                                        memory: data.memory,
+                                        power: data.power,
+                                        xml: currentXml
+                                    });
+                                }
+                            }
+                        }
+                        if (data && data.goalReached && (data.levelId === undefined || data.levelId === level)) {
+                            markLevelSolved(level);
+                        }
+                    }).catch(function(err) {});
+                }
             };
-            if (sid) {
-                headers['X-Session-ID'] = sid;
-            }
-            if (typeof fetch === 'function') {
-                var nowIso = new Date().toISOString();
-                fetch('/api/simulation/run', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({
-                        timerSessionId: sessionId,
-                        level: level,
-                        recordExecution: true,
-                        variant: getVariant(),
-                        timestamp: nowIso,
-                        levelElapsedMs: Math.floor(currentElapsedMs),
-                        levelArrivedAt: getLevelArrivedAt(),
-                        xml: getCurrentWorkspaceXml()
-                    })
-                }).then(function(r) {
-                    if (r.ok) return r.json();
-                }).then(function(data) {
-                    if (data && data.newPath && typeof window.__ifRender === 'function') {
-                        window.__runPathShown = true; // see BLOCKY_LIVE_PATH in blockyUIOverlay.js
-                        window.__injectNewPath = data.newPath;
-                        window.__ifRender();
-                    }
-                    // Run Program: keep the memory / power readout in step with the program that just ran.
-                    if (data && typeof window.__consumptionUpdate === 'function'
-                            && (data.levelId === undefined || data.levelId === level)) {
-                        window.__consumptionUpdate(data.memory, data.power);
-                    }
-                }).catch(function(err) {});
+
+            if (typeof window.__syncCurrentLevelStateToBackend === 'function') {
+                window.__syncCurrentLevelStateToBackend(doRun);
+            } else {
+                doRun();
             }
         } catch (e2) {}
     }
@@ -1194,6 +1530,11 @@
                 headerObserverTimeout = null;
             }
         };
+
+        window.__levelTimerIsLevelSolved = isLevelSolved;
+        window.__levelTimerMarkLevelSolved = markLevelSolved;
+        window.__levelTimerIsAllLevelsCompleted = isAllLevelsCompleted;
+        window.__levelTimerShowAllLevelsCompletedModal = showAllLevelsCompletedModal;
 
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
