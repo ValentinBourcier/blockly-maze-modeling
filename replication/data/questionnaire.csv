@@ -1,0 +1,26 @@
+ID,253,601,476,181,735,123,Dennis,Ghost,697,784
+Group,Treatement,Treatement,Treatement,Treatement,Treatement,Control,Control,Control,Control,Control
+Gender,Male,Male,Male,Male,Male,Male,Male,Male,Male,Male
+Level,PhD Student,PhD Student,PhD Student,PhD Student,PhD Student,PhD Student,Master Student,Master Student,Master Student,PhD
+Work,Academia,Academia,Academia,Academia,Academia,Academia,Academia,Academia,Academia,Academia
+SE Experience,14,17,20,10,10,11,1,0,10,30
+Mo Experience,6,15,5,5,0,13,0,1,5,0
+Familiar,No,No,No,Yes,No,No,Yes,Yes,No,No
+EQ1,5,5,5,5,4,4,3,2,4,4
+EQ2,5,5,5,5,5,5,2,4,5,5
+EQ3,3,3,3,3,3,3,4,5,4,3
+EQ4,5,3,2,5,4,2,2,4,1,4
+EQ5,1,2,1,1,1,1,2,1,1,1
+SUS1,4,4,2,3,2,1,4,3,2,1
+SUS2,1,1,2,1,1,1,2,2,1,3
+SUS3,5,5,5,5,4,5,4,4,5,2
+SUS4,3,1,1,1,1,1,2,1,1,1
+SUS5,4,5,4,2,5,5,3,4,4,2
+SUS6,2,1,1,4,1,1,2,2,1,1
+SUS7,4,5,5,5,3,5,5,5,5,2
+SUS8,2,1,1,1,2,1,2,1,3,3
+SUS9,5,5,4,4,5,5,,4,3,3
+SUS10,1,1,1,2,1,1,2,1,2,1
+Suggestion1,1,2,1,3,1,,,,,
+Suggestion2,4,5,3,2,1,,,,,
+Suggestion3,2,4,,5,2,,,,,
