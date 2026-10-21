@@ -1,0 +1,242 @@
+session,index,level,type,variant,timestamp,program,matchesLoadedCandidate,reachesGoal,status,power_kW_actions,memory_kB_blocks,note,pareto,table_max_blocks,dominatedBy,dominatedBy_actions,dominatedBy_blocks,dominatedBy_source
+Anonymus123_20261019T081003Z,6,5,program_run,original,2026-10-19T08:19:21.930Z,W(a(F|L)),,true,WON,16,4,,dominated,6,W(Fl(L|)),15,4,search
+Anonymus123_20261019T081003Z,7,6,program_run,original,2026-10-19T08:19:50.886Z,W(a(F|L)),,true,WON,40,4,,dominated,9,W(Fl(L|)),36,4,search
+Anonymus123_20261019T081003Z,8,7,program_run,original,2026-10-19T08:20:54.219Z,W(a(F|R)),,true,WON,40,4,,dominated,9,W(Fr(R|)),27,4,search
+Anonymus123_20261019T081003Z,9,7,program_run,original,2026-10-19T08:21:29.960Z,W(r(R|F)),,false,CRASHED,130,4,,no goal,,,,,
+Anonymus123_20261019T081003Z,10,7,program_run,original,2026-10-19T08:21:57.093Z,W(r(RF|F)),,true,WON,27,5,,dominated,9,W(Fr(R|)),27,4,search
+Anonymus123_20261019T081003Z,11,8,program_run,original,2026-10-19T08:23:23.951Z,W(a(F|)l(L|R)),,true,WON,88,6,,dominated,9,W(a(FR|L)),76,5,search
+Anonymus123_20261019T081003Z,12,8,program_run,original,2026-10-19T08:24:16.199Z,W(a(F|)l(L|R)),,true,WON,88,6,,dominated,9,W(a(FR|L)),76,5,search
+Anonymus123_20261019T081003Z,13,8,program_run,original,2026-10-19T08:25:18.018Z,W(a(F|l(L|R))),,true,WON,53,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+Anonymus123_20261019T081003Z,14,9,program_run,original,2026-10-19T08:26:42.614Z,W(a(F|L)),,true,WON,24,4,,dominated,8,W(a(|L)F),22,4,search
+Anonymus123_20261019T081003Z,15,10,program_run,original,2026-10-19T08:28:13.726Z,W(r(R|)l(L|)a(F|)),,false,CRASHED,131,7,,no goal,,,,,
+Anonymus123_20261019T081003Z,16,10,program_run,original,2026-10-19T08:29:06.568Z,W(r(R|l(L|))a(F|)),,false,CRASHED,130,7,,no goal,,,,,
+Anonymus123_20261019T081003Z,17,10,program_run,original,2026-10-19T08:30:54.658Z,W(r(R|l(L|))a(F|LL)),,false,CRASHED,131,9,,no goal,,,,,
+Anonymus123_20261019T081003Z,18,10,program_run,original,2026-10-19T08:31:43.659Z,W(r(R|)a(F|LL)),,true,WON,95,7,,dominated,9,W(a(Fr(R|)|L)),89,6,search
+Anonymus123_20261019T081003Z,19,10,program_run,original,2026-10-19T08:33:49.347Z,W(r(R|a(F|LL))),,false,CRASHED,130,7,,no goal,,,,,
+Anonymus123_20261019T081003Z,20,10,program_run,original,2026-10-19T08:34:51.073Z,W(r(R|a(F|LL))),,false,CRASHED,130,7,,no goal,,,,,
+Anonymus123_20261019T081003Z,21,10,program_run,original,2026-10-19T08:35:13.346Z,W(r(RF|a(F|LL))),,true,WON,86,8,,dominated,9,W(a(F|)a(F|R)R),43,7,search
+Anonymus123_20261019T081003Z,22,10,program_run,original,2026-10-19T08:36:09.211Z,W(r(R|a(|LL))F),,false,CRASHED,131,7,,no goal,,,,,
+Anonymus123_20261019T081003Z,23,10,program_run,original,2026-10-19T08:37:41.531Z,W(r(R|a(|l(L|LL)))F),,true,WON,79,9,,dominated,9,W(a(F|)a(F|R)R),43,7,search
+Anonymus123_20261019T081003Z,24,10,program_run,original,2026-10-19T08:38:20.724Z,W(r(R|a(|l(|L)L))F),,true,WON,79,8,,dominated,9,W(a(F|)a(F|R)R),43,7,search
+Anonymus123_20261019T081003Z,25,10,program_run,original,2026-10-19T08:38:57.021Z,W(r(R|l(|L)L)F),,false,CRASHED,5,7,,no goal,,,,,
+Anonymus123_20261019T081003Z,26,10,program_run,original,2026-10-19T08:39:37.121Z,W(r(R|l(L|LL))F),,false,CRASHED,5,8,,no goal,,,,,
+dennis_20261019T081049Z,10,5,program_run,original,2026-10-19T08:18:20.191Z,FLW(F),,false,CRASHED,3,4,,no goal,,,,,
+dennis_20261019T081049Z,11,5,program_run,original,2026-10-19T08:18:28.790Z,FFLW(F),,true,WON,8,5,,optimal,6,,,,
+dennis_20261019T081049Z,12,6,program_run,original,2026-10-19T08:19:02.657Z,l(F|),,false,RUNNING,1,2,,no goal,,,,,
+dennis_20261019T081049Z,13,6,program_run,original,2026-10-19T08:19:23.411Z,W(F) + l(F|),,false,CRASHED,5,2,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,14,6,program_run,original,2026-10-19T08:20:15.940Z,W(l(F|F)),,false,CRASHED,10,4,,no goal,,,,,
+dennis_20261019T081049Z,15,6,program_run,original,2026-10-19T08:20:44.337Z,F,,false,RUNNING,1,1,,no goal,,,,,
+dennis_20261019T081049Z,16,6,program_run,original,2026-10-19T08:20:52.264Z,FF,,false,RUNNING,2,2,,no goal,,,,,
+dennis_20261019T081049Z,17,6,program_run,original,2026-10-19T08:20:58.206Z,FFF,,false,RUNNING,3,3,,no goal,,,,,
+dennis_20261019T081049Z,18,6,program_run,original,2026-10-19T08:21:03.980Z,FFFF,,false,RUNNING,4,4,,no goal,,,,,
+dennis_20261019T081049Z,19,6,program_run,original,2026-10-19T08:21:18.669Z,FFFFL,,false,RUNNING,5,5,,no goal,,,,,
+dennis_20261019T081049Z,20,6,program_run,original,2026-10-19T08:21:50.542Z,W(FFFFL),,false,CRASHED,18,6,,no goal,,,,,
+dennis_20261019T081049Z,21,6,program_run,original,2026-10-19T08:23:00.257Z,W() + l(FFFFL|RFF),,false,CRASHED,0,1,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,22,6,program_run,original,2026-10-19T08:23:05.140Z,l(FFFFL|RFF),,false,CRASHED,3,9,,no goal,,,,,
+dennis_20261019T081049Z,23,6,program_run,original,2026-10-19T08:23:12.914Z,a(FFFFL|RFF),,false,RUNNING,6,9,,no goal,,,,,
+dennis_20261019T081049Z,24,6,program_run,original,2026-10-19T08:23:23.769Z,W(a(FFFFL|RFF)),,false,CRASHED,22,10,,no goal,,,,,
+dennis_20261019T081049Z,25,6,program_run,original,2026-10-19T08:23:57.452Z,W(FFFFL),,false,CRASHED,18,6,,no goal,,,,,
+dennis_20261019T081049Z,26,6,program_run,original,2026-10-19T08:24:22.419Z,W(FFFL),,false,CRASHED,5,5,,no goal,,,,,
+dennis_20261019T081049Z,27,6,program_run,original,2026-10-19T08:24:49.559Z,W(l(FFF|)),,false,CRASHED,129,5,,no goal,,,,,
+dennis_20261019T081049Z,28,6,program_run,original,2026-10-19T08:25:09.601Z,W(a(FFF|)),,false,CRASHED,7,5,,no goal,,,,,
+dennis_20261019T081049Z,29,6,program_run,original,2026-10-19T08:25:31.194Z,W(a(FFFF|)L),,false,CRASHED,22,7,,no goal,,,,,
+dennis_20261019T081049Z,30,6,program_run,original,2026-10-19T08:26:14.610Z,W(a(FFFF|)Lr(FFF|)),,false,CRASHED,25,11,,no goal,,,,,
+dennis_20261019T081049Z,31,6,program_run,original,2026-10-19T08:26:41.665Z,W(a(FFFF|)Ll(FFF|)),,false,CRASHED,13,11,,no goal,,,,,
+dennis_20261019T081049Z,32,6,program_run,original,2026-10-19T08:26:50.339Z,W(a(FFFF|)L),,false,CRASHED,22,7,,no goal,,,,,
+dennis_20261019T081049Z,33,6,program_run,original,2026-10-19T08:28:11.263Z,W(a(F|)l(F|)l(F|)),,false,CRASHED,16,7,,no goal,,,,,
+dennis_20261019T081049Z,34,6,program_run,original,2026-10-19T08:28:37.815Z,W(a(FFFFL|)),,false,CRASHED,22,7,,no goal,,,,,
+dennis_20261019T081049Z,35,6,program_run,original,2026-10-19T08:29:17.324Z,a(FFFFL|),,false,RUNNING,6,6,,no goal,,,,,
+dennis_20261019T081049Z,36,6,program_run,original,2026-10-19T08:30:03.536Z,a(|) + a(FFFFL|R),,false,RUNNING,7,8,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,37,6,program_run,original,2026-10-19T08:30:15.678Z,a(|) + W(a(FFFFL|R)),,false,CRASHED,23,9,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,38,6,program_run,original,2026-10-19T08:31:00.134Z,a(|) + W(a(FFFL|R)),,false,CRASHED,11,8,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,39,6,program_run,original,2026-10-19T08:31:34.041Z,a(|) + W(a(FFFa(F|)L|R)),,false,CRASHED,26,10,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,40,6,program_run,original,2026-10-19T08:32:19.260Z,W(a(FFFa(F|)L|R)),,false,CRASHED,25,9,,no goal,,,,,
+dennis_20261019T081049Z,41,6,program_run,original,2026-10-19T08:32:37.076Z,W(a(FFFa(F|)l(L|)|R)),,false,CRASHED,28,10,,no goal,,,,,
+dennis_20261019T081049Z,42,6,program_run,original,2026-10-19T08:33:15.059Z,W(a(FFa(FF|)l(L|)|R)),,true,WON,35,10,,dominated,9,FFW(a(FF|)LFF),24,9,search
+dennis_20261019T081049Z,43,7,program_run,original,2026-10-19T08:34:24.884Z,W(a(FFF|)RFFF),,false,CRASHED,6,9,,no goal,,,,,
+dennis_20261019T081049Z,44,7,program_run,original,2026-10-19T08:34:32.240Z,W(a(FFFF|)RFFF),,false,CRASHED,12,10,,no goal,,,,,
+dennis_20261019T081049Z,45,7,program_run,original,2026-10-19T08:34:59.767Z,W(a(FFFF|)RFFFRFFFF),,false,CRASHED,11,15,,no goal,,,,,
+dennis_20261019T081049Z,46,7,program_run,original,2026-10-19T08:35:09.263Z,W(a(FFFF|)RFFFFRFFFF),,false,CRASHED,20,16,,no goal,,,,,
+dennis_20261019T081049Z,47,7,program_run,original,2026-10-19T08:35:43.234Z,W(a(FFFF|)RFFFFRFFFFRFF),,false,CRASHED,23,19,,no goal,,,,,
+dennis_20261019T081049Z,48,7,program_run,original,2026-10-19T08:37:19.734Z,W(a(FFFF|R)),,false,CRASHED,25,7,,no goal,,,,,
+dennis_20261019T081049Z,49,7,program_run,original,2026-10-19T08:38:55.645Z,FFFFr(|) + W(a(FFFF|R)),,false,CRASHED,25,12,"2 unconnected block stacks, run one after another",no goal,,,,,
+dennis_20261019T081049Z,50,7,program_run,original,2026-10-19T08:39:04.043Z,FFFFr(|),,false,RUNNING,5,5,,no goal,,,,,
+dennis_20261019T081049Z,51,7,program_run,original,2026-10-19T08:39:33.399Z,FFFr(F|F),,false,RUNNING,5,6,,no goal,,,,,
+dennis_20261019T081049Z,52,7,program_run,original,2026-10-19T08:39:49.025Z,FFFr(F|F)R,,false,RUNNING,6,7,,no goal,,,,,
+dennis_20261019T081049Z,53,7,program_run,original,2026-10-19T08:39:57.004Z,W(FFFr(F|F)R),,false,CRASHED,21,8,,no goal,,,,,
+dennis_20261019T081049Z,54,7,program_run,original,2026-10-19T08:40:26.134Z,W(FFr(FF|F)R),,false,CRASHED,6,8,,no goal,,,,,
+dennis_20261019T081049Z,55,7,program_run,original,2026-10-19T08:40:39.557Z,W(FFFr(F|F)R),,false,CRASHED,21,8,,no goal,,,,,
+dennis_20261019T081049Z,56,7,program_run,original,2026-10-19T08:40:45.131Z,W(FFFr(F|F)R),,false,CRASHED,21,8,,no goal,,,,,
+dennis_20261019T081049Z,57,7,program_run,original,2026-10-19T08:41:23.121Z,W(FFFr(F|a(F|))R),,false,CRASHED,24,9,,no goal,,,,,
+dennis_20261019T081049Z,58,8,program_run,original,2026-10-19T08:42:34.607Z,W(FFFLFFF),,false,CRASHED,3,8,,no goal,,,,,
+dennis_20261019T081049Z,59,8,program_run,original,2026-10-19T08:42:41.713Z,W(FFLFFF),,false,CRASHED,6,7,,no goal,,,,,
+dennis_20261019T081049Z,60,8,program_run,original,2026-10-19T08:42:57.728Z,W(FFLFFLFF),,false,CRASHED,9,9,,no goal,,,,,
+dennis_20261019T081049Z,61,8,program_run,original,2026-10-19T08:43:07.183Z,W(FFLFFLFFLFF),,false,CRASHED,10,12,,no goal,,,,,
+dennis_20261019T081049Z,62,8,program_run,original,2026-10-19T08:44:09.063Z,W(a(F|)l(F|)r(F|)),,false,CRASHED,8,7,,no goal,,,,,
+dennis_20261019T081049Z,63,8,program_run,original,2026-10-19T08:44:23.254Z,W(a(F|)l(LF|)r(RF|)),,true,WON,53,9,,dominated,9,FFW(a(|L)Fr(RF|)),43,9,search
+dennis_20261019T081049Z,64,9,program_run,original,2026-10-19T08:45:04.187Z,W(a(F|)l(LF|)r(RF|)),,false,CRASHED,130,9,,no goal,,,,,
+dennis_20261019T081049Z,65,9,program_run,original,2026-10-19T09:15:00.598Z,W(FFF),,false,CRASHED,2,4,,no goal,,,,,
+dennis_20261019T081049Z,66,9,program_run,original,2026-10-19T09:16:01.838Z,FLFFFLW(F),,true,WON,12,8,,optimal,8,,,,
+dennis_20261019T081049Z,67,10,program_run,original,2026-10-19T09:16:44.939Z,FFl(F|),,false,RUNNING,4,4,,no goal,,,,,
+dennis_20261019T081049Z,68,10,program_run,original,2026-10-19T09:16:54.728Z,FFl(LF|),,false,RUNNING,5,5,,no goal,,,,,
+dennis_20261019T081049Z,69,10,program_run,original,2026-10-19T09:17:05.036Z,W(FFl(L|)),,false,CRASHED,12,5,,no goal,,,,,
+dennis_20261019T081049Z,70,10,program_run,original,2026-10-19T09:17:31.825Z,FFLFFR,,false,RUNNING,6,6,,no goal,,,,,
+dennis_20261019T081049Z,71,10,program_run,original,2026-10-19T09:17:44.312Z,FFLFFRFFL,,false,RUNNING,9,9,,no goal,,,,,
+dennis_20261019T081049Z,72,10,program_run,original,2026-10-19T09:18:10.794Z,FFLFFRFFLFF,,false,RUNNING,11,11,,no goal,,,,,
+dennis_20261019T081049Z,73,10,program_run,original,2026-10-19T09:18:29.975Z,FFLFFRFFLFFL,,false,RUNNING,12,12,,no goal,,,,,
+dennis_20261019T081049Z,74,10,program_run,original,2026-10-19T09:19:11.768Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+Ghost_20261019T080953Z,7,5,program_run,original,2026-10-19T08:19:05.997Z,a(F|)La(F|),,false,RUNNING,4,5,,no goal,,,,,
+Ghost_20261019T080953Z,8,5,program_run,original,2026-10-19T08:20:17.695Z,a(FF|)LW(F),,true,WON,9,6,,dominated,6,FFLW(F),8,5,search
+Ghost_20261019T080953Z,9,5,program_run,original,2026-10-19T08:20:26.891Z,a(FF|)LW(F),,true,WON,9,6,,dominated,6,FFLW(F),8,5,search
+Ghost_20261019T080953Z,10,6,program_run,original,2026-10-19T08:21:39.418Z,W(a(FFFF|L)),,false,CRASHED,25,7,,no goal,,,,,
+Ghost_20261019T080953Z,11,6,program_run,original,2026-10-19T08:22:31.210Z,W(a(FFF|L)),,false,CRASHED,7,6,,no goal,,,,,
+Ghost_20261019T080953Z,12,6,program_run,original,2026-10-19T08:24:42.180Z,W(a(FFFF|a(FFF|l(L|)))),,false,CRASHED,31,12,,no goal,,,,,
+Ghost_20261019T080953Z,13,6,program_run,original,2026-10-19T08:26:15.680Z,W(a(FFFF|l(L|a(FFF|)))),,false,CRASHED,28,12,,no goal,,,,,
+Ghost_20261019T080953Z,14,6,program_run,original,2026-10-19T08:30:57.450Z,W(a(|l(|a(F|)))) + FFFFLFFFFLFFFFLFFFLFF,,false,CRASHED,129,5,"2 unconnected block stacks, run one after another",no goal,,,,,
+Ghost_20261019T080953Z,15,6,program_run,original,2026-10-19T08:31:08.344Z,FFFFLFFFFLFFFFLFFFLFF,,false,CRASHED,18,21,,no goal,,,,,
+Ghost_20261019T080953Z,16,6,program_run,original,2026-10-19T08:31:28.363Z,FFFFLFFFFLFFFFLFFLFF,,true,WON,20,20,,dominated,9,FFFFLFFFFLFFFFW(LFF),20,18,amin-front
+Ghost_20261019T080953Z,17,7,program_run,original,2026-10-19T08:32:02.427Z,a(F|),,false,RUNNING,2,2,,no goal,,,,,
+Ghost_20261019T080953Z,18,7,program_run,original,2026-10-19T08:32:08.499Z,W(a(F|)),,false,CRASHED,129,3,,no goal,,,,,
+Ghost_20261019T080953Z,19,7,program_run,original,2026-10-19T08:34:23.875Z,FFFRFFFFRFFRFF,,false,CRASHED,5,14,,no goal,,,,,
+Ghost_20261019T080953Z,20,7,program_run,original,2026-10-19T08:34:29.332Z,FFFFRFFFFRFFRFF,,true,WON,15,15,,dominated,9,FFFFRFFFFW(RFF),15,13,amin-front
+Ghost_20261019T080953Z,21,8,program_run,original,2026-10-19T08:34:58.624Z,a(F|),,false,RUNNING,2,2,,no goal,,,,,
+Ghost_20261019T080953Z,22,8,program_run,original,2026-10-19T08:35:06.543Z,W(a(F|)),,false,CRASHED,129,3,,no goal,,,,,
+Ghost_20261019T080953Z,23,8,program_run,original,2026-10-19T08:35:29.284Z,W(a(F|)l(L|)),,false,CRASHED,130,5,,no goal,,,,,
+Ghost_20261019T080953Z,24,8,program_run,original,2026-10-19T08:35:42.307Z,W(a(F|)l(L|)r(R|)),,true,WON,71,7,,dominated,9,FW(a(|l(L|R))F),45,7,search
+Ghost_20261019T080953Z,25,9,program_run,original,2026-10-19T08:37:02.351Z,W(a(F|)l(L|)r(R|)),,false,CRASHED,129,7,,no goal,,,,,
+Ghost_20261019T080953Z,26,9,program_run,original,2026-10-19T08:37:57.536Z,W(a(F|l(L|)r(R|))),,true,WON,28,7,,dominated,8,W(a(|L)F),22,4,search
+Ghost_20261019T080953Z,27,10,program_run,original,2026-10-19T08:39:32.507Z,W(a(F|r(R|)l(L|))),,false,CRASHED,129,7,,no goal,,,,,
+Ghost_20261019T080953Z,28,10,program_run,original,2026-10-19T08:39:54.305Z,W(a(Fl(L|)|r(R|)l(L|))),,false,CRASHED,129,9,,no goal,,,,,
+Ghost_20261019T080953Z,29,10,program_run,original,2026-10-19T08:40:06.720Z,W(a(Fr(R|)l(L|)|)),,false,CRASHED,129,7,,no goal,,,,,
+Ghost_20261019T080953Z,30,10,program_run,original,2026-10-19T08:40:25.840Z,W(a(Fr(R|)l(L|)|)),,false,CRASHED,129,7,,no goal,,,,,
+Ghost_20261019T080953Z,31,10,program_run,original,2026-10-19T08:40:52.914Z,W(a(Fr(RF|)l(LF|)|)),,false,CRASHED,129,9,,no goal,,,,,
+Ghost_20261019T080953Z,32,10,program_run,original,2026-10-19T08:41:19.418Z,W(a(Fr(RF|)l(LF|)|RR)),,false,CRASHED,134,11,,no goal,,,,,
+Ghost_20261019T080953Z,33,10,program_run,original,2026-10-19T08:41:26.661Z,W(a(Fr(RF|)l(LF|)|RLR)),,false,CRASHED,132,12,,no goal,,,,,
+Ghost_20261019T080953Z,34,10,program_run,original,2026-10-19T08:41:38.119Z,W(a(Fr(RF|)l(LF|)|RRL)),,false,CRASHED,132,12,,no goal,,,,,
+Ghost_20261019T080953Z,35,10,program_run,original,2026-10-19T08:42:52.535Z,W(a(FFr(RF|)l(LF|)|RRL)),,false,CRASHED,28,13,,no goal,,,,,
+Ghost_20261019T080953Z,36,10,program_run,original,2026-10-19T08:43:01.634Z,W(a(FFr(RF|)l(LF|)|)),,false,CRASHED,129,10,,no goal,,,,,
+Ghost_20261019T080953Z,37,10,program_run,original,2026-10-19T08:43:10.334Z,W(a(FFl(LF|)r(RF|)|)),,false,CRASHED,129,10,,no goal,,,,,
+Ghost_20261019T080953Z,38,10,program_run,original,2026-10-19T08:43:14.645Z,W(a(FFl(LF|)r(RF|)|)),,false,CRASHED,129,10,,no goal,,,,,
+Ghost_20261019T080953Z,39,10,program_run,original,2026-10-19T08:43:29.640Z,W(a(Fl(LF|)r(RF|)|)),,false,CRASHED,129,9,,no goal,,,,,
+Ghost_20261019T080953Z,40,10,program_run,original,2026-10-19T08:45:05.559Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_181_20261019T101005Z,7,5,program_run,momot,2026-10-19T10:26:50.347Z,W(Fl(L|)),,true,WON,15,4,,optimal,6,,,,
+player_181_20261019T101005Z,8,5,program_run,momot,2026-10-19T10:28:12.953Z,FFLW(F),,true,WON,8,5,,optimal,6,,,,
+player_181_20261019T101005Z,9,6,program_run,momot,2026-10-19T10:30:28.206Z,W(Fl(F|)),,false,CRASHED,9,4,,no goal,,,,,
+player_181_20261019T101005Z,10,6,program_run,momot,2026-10-19T10:30:43.092Z,W(Fl(LF|)),,true,WON,32,5,,dominated,9,W(FFl(L|)),28,5,search
+player_181_20261019T101005Z,11,7,program_run,momot,2026-10-19T10:31:58.688Z,F + W(Fa(R|)),,false,CRASHED,5,5,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_181_20261019T101005Z,12,7,program_run,momot,2026-10-19T10:32:08.581Z,F + W(Fr(R|)),,true,WON,26,5,"2 unconnected block stacks, run one after another",dominated,9,W(FFr(R|)),21,5,search
+player_181_20261019T101005Z,13,8,program_run,momot,2026-10-19T10:34:01.853Z,W(Fl(L|R)),,false,CRASHED,4,5,,no goal,,,,,
+player_181_20261019T101005Z,14,8,program_run,momot,2026-10-19T10:34:08.847Z,W(Fa(L|R)),,false,CRASHED,4,5,,no goal,,,,,
+player_181_20261019T101005Z,15,8,program_run,momot,2026-10-19T10:34:59.443Z,W(Fl(L|r(R|))),,true,WON,52,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_181_20261019T101005Z,16,9,program_run,momot,2026-10-19T10:36:45.158Z,R + W(Fl(L|r(R|))),,false,CRASHED,2,7,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_181_20261019T101005Z,17,9,program_run,momot,2026-10-19T10:36:50.881Z,W(Fl(L|r(R|))),,false,CRASHED,32,6,,no goal,,,,,
+player_181_20261019T101005Z,18,9,program_run,momot,2026-10-19T10:37:49.306Z,W(a(F|l(L|R))),,true,WON,26,6,,dominated,8,W(a(|L)F),22,4,search
+player_181_20261019T101005Z,19,10,candidate_exploration,momot,2026-10-19T10:40:28.720023874Z,l(W()|)l(|)W(),,false,CRASHED,2,4,,no goal,,,,,
+player_181_20261019T101005Z,20,10,program_run,momot,2026-10-19T10:41:46.232Z,W(a(F|l(L|R))),,false,CRASHED,129,6,,no goal,,,,,
+player_181_20261019T101005Z,21,10,program_run,momot,2026-10-19T10:43:46.348Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_181_20261019T101005Z,22,10,program_run,momot,2026-10-19T10:44:48.989Z,W(a(F|r(R|))),,false,CRASHED,130,5,,no goal,,,,,
+player_181_20261019T101005Z,23,10,program_run,momot,2026-10-19T10:46:15.615Z,W(a(F|r(R|))),,false,CRASHED,130,5,,no goal,,,,,
+player_181_20261019T101005Z,24,10,program_run,momot,2026-10-19T10:46:42.143Z,W(Fr(R|)),,false,CRASHED,7,4,,no goal,,,,,
+player_181_20261019T101005Z,25,10,program_run,momot,2026-10-19T10:46:44.776Z,W(Fr(R|)),,false,CRASHED,7,4,,no goal,,,,,
+player_181_20261019T101005Z,26,10,program_run,momot,2026-10-19T10:49:32.069Z,W(Fl(L|)),,false,CRASHED,15,4,,no goal,,,,,
+player_253_20261019T101009Z,8,5,program_run,momot,2026-10-19T10:26:15.533Z,W(Fl(L|)),,true,WON,15,4,,optimal,6,,,,
+player_253_20261019T101009Z,9,5,program_run,momot,2026-10-19T10:27:10.621Z,FFLW(F),,true,WON,8,5,,optimal,6,,,,
+player_253_20261019T101009Z,10,6,candidate_exploration,momot,2026-10-19T10:29:26.602499888Z,W(Fl(L|)),,true,WON,36,4,,optimal,9,,,,
+player_253_20261019T101009Z,11,6,candidate_exploration,momot,2026-10-19T10:29:49.870212665Z,W(Fl(L|)),,true,WON,36,4,,optimal,9,,,,
+player_253_20261019T101009Z,12,6,candidate_exploration,momot,2026-10-19T10:29:50.059087646Z,W(Fl(L|)),,true,WON,36,4,,optimal,9,,,,
+player_253_20261019T101009Z,13,6,program_run,momot,2026-10-19T10:29:53.592Z,W(Fl(L|)),12,true,WON,36,4,,optimal,9,,,,
+player_253_20261019T101009Z,14,7,program_run,momot,2026-10-19T10:31:16.985Z,W(Fr(R|)),,true,WON,27,4,,optimal,9,,,,
+player_253_20261019T101009Z,15,8,program_run,momot,2026-10-19T10:34:54.490Z,W(Fl(L|)r(R|)),,true,WON,55,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_253_20261019T101009Z,16,9,program_run,momot,2026-10-19T10:39:46.192Z,FLFFFLW(F),,true,WON,12,8,,optimal,8,,,,
+player_253_20261019T101009Z,17,10,program_run,momot,2026-10-19T10:42:08.047Z,FFLFFRW(Fl(L|)),,false,CRASHED,19,10,,no goal,,,,,
+player_253_20261019T101009Z,18,10,program_run,momot,2026-10-19T10:43:19.690Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_253_20261019T101009Z,19,10,candidate_exploration,momot,2026-10-19T10:44:19.606696253Z,FFLFFRFFLFFLFRW(F),,true,WON,15,16,,dominated,9,FFLFFRFFLFFLFRF,15,15,amin-front
+player_253_20261019T101009Z,20,9,candidate_exploration,momot,2026-10-19T10:48:27.843980500Z,FLFFFLW(F),,true,WON,12,8,,optimal,8,,,,
+player_476_20261019T101016Z,5,5,program_run,momot,2026-10-19T10:25:32.543Z,W(a(F|)a(LR|)),,false,CRASHED,130,6,,no goal,,,,,
+player_476_20261019T101016Z,6,5,program_run,momot,2026-10-19T10:25:59.757Z,W(a(F|)l(L|R)),,true,WON,43,6,,dominated,6,W(Fl(L|)),15,4,search
+player_476_20261019T101016Z,7,5,program_run,momot,2026-10-19T10:26:32.786Z,W(a(F|l(L|R))),,true,WON,17,6,,dominated,6,W(Fl(L|)),15,4,search
+player_476_20261019T101016Z,8,6,program_run,momot,2026-10-19T10:28:29.418Z,W(a(F|l(L|R))),,true,WON,44,6,,dominated,9,W(Fl(L|)),36,4,search
+player_476_20261019T101016Z,9,7,program_run,momot,2026-10-19T10:31:53.824Z,F + W(a(F|)) + R,,false,CRASHED,129,4,"3 unconnected block stacks, run one after another",no goal,,,,,
+player_476_20261019T101016Z,10,7,program_run,momot,2026-10-19T10:32:04.691Z,W(a(F|)) + R,,false,CRASHED,129,3,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_476_20261019T101016Z,11,7,program_run,momot,2026-10-19T10:32:57.236Z,W(a(F|R)),,true,WON,40,4,,dominated,9,W(Fr(R|)),27,4,search
+player_476_20261019T101016Z,12,7,program_run,momot,2026-10-19T10:34:09.928Z,W(a(Fr(R|)|R)),,true,WON,39,6,,dominated,9,W(Fr(R|)),27,4,search
+player_476_20261019T101016Z,13,7,program_run,momot,2026-10-19T10:34:58.861Z,W(a(Fr(R|)|)),,true,WON,39,5,,dominated,9,W(Fr(R|)),27,4,search
+player_476_20261019T101016Z,14,8,program_run,momot,2026-10-19T10:36:46.159Z,W(a(F|l(L|R))),,true,WON,53,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_476_20261019T101016Z,15,8,program_run,momot,2026-10-19T10:37:33.580Z,W(a(F|r(R|L))),,true,WON,53,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_476_20261019T101016Z,16,9,program_run,momot,2026-10-19T10:39:12.957Z,W(a(F|R)),,false,CRASHED,130,4,,no goal,,,,,
+player_476_20261019T101016Z,17,9,program_run,momot,2026-10-19T10:39:24.787Z,W(a(F|L)),,true,WON,24,4,,dominated,8,W(a(|L)F),22,4,search
+player_476_20261019T101016Z,18,10,program_run,momot,2026-10-19T10:41:56.491Z,W(l(L|r(R|F))),,false,CRASHED,130,6,,no goal,,,,,
+player_476_20261019T101016Z,19,10,program_run,momot,2026-10-19T10:42:43.338Z,W(r(LF|l(RF|F))),,false,CRASHED,10,8,,no goal,,,,,
+player_476_20261019T101016Z,20,10,program_run,momot,2026-10-19T10:42:59.403Z,W(r(LF|l(LF|F))),,false,CRASHED,22,8,,no goal,,,,,
+player_476_20261019T101016Z,21,10,program_run,momot,2026-10-19T10:43:50.153Z,W(r(RF|l(LF|F))),,false,CRASHED,36,8,,no goal,,,,,
+player_476_20261019T101016Z,22,10,program_run,momot,2026-10-19T10:47:34.426Z,FFLFFRW(r(R|F)),,false,CRASHED,130,10,,no goal,,,,,
+player_476_20261019T101016Z,23,10,program_run,momot,2026-10-19T10:47:56.175Z,FFLFFRFW(r(R|F)),,false,CRASHED,129,11,,no goal,,,,,
+player_476_20261019T101016Z,24,10,program_run,momot,2026-10-19T10:48:15.013Z,FFLFFRFW(l(L|F)),,false,CRASHED,129,11,,no goal,,,,,
+player_476_20261019T101016Z,25,10,program_run,momot,2026-10-19T10:49:26.367Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_601_20261019T101002Z,5,5,program_run,momot,2026-10-19T10:26:16.261Z,FFLW(F),,true,WON,8,5,,optimal,6,,,,
+player_601_20261019T101002Z,6,5,program_run,momot,2026-10-19T10:27:06.584Z,W(a(F|L)),,true,WON,16,4,,dominated,6,W(Fl(L|)),15,4,search
+player_601_20261019T101002Z,7,5,program_run,momot,2026-10-19T10:27:21.344Z,FFLW(F),,true,WON,8,5,,optimal,6,,,,
+player_601_20261019T101002Z,8,6,program_run,momot,2026-10-19T10:28:04.228Z,W(a(F|L)),,true,WON,40,4,,dominated,9,W(Fl(L|)),36,4,search
+player_601_20261019T101002Z,9,7,program_run,momot,2026-10-19T10:29:23.271Z,W(a(F|R)),,true,WON,40,4,,dominated,9,W(Fr(R|)),27,4,search
+player_601_20261019T101002Z,10,8,program_run,momot,2026-10-19T10:30:36.212Z,W(a(F|l(L|R))),,true,WON,53,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_601_20261019T101002Z,11,8,program_run,momot,2026-10-19T10:31:10.144Z,W(a(F|r(R|L))),,true,WON,53,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_601_20261019T101002Z,12,9,program_run,momot,2026-10-19T10:32:02.309Z,FLFFFLW(F),,true,WON,12,8,,optimal,8,,,,
+player_601_20261019T101002Z,13,10,program_run,momot,2026-10-19T10:33:09.684Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_601_20261019T101002Z,14,10,program_run,momot,2026-10-19T10:37:48.883Z,FFLFFRFW(l(LF|a(F|R))),,true,WON,25,14,,dominated,9,FFLFFRFFW(LFa(|R)F),17,14,loop-search
+player_601_20261019T101002Z,15,10,program_run,momot,2026-10-19T10:39:11.300Z,W(a(F|l(L|R))),,false,CRASHED,129,6,,no goal,,,,,
+player_601_20261019T101002Z,16,10,program_run,momot,2026-10-19T10:39:57.714Z,FW(a(F|l(L|R))),,false,CRASHED,131,7,,no goal,,,,,
+player_601_20261019T101002Z,17,10,program_run,momot,2026-10-19T10:42:44.751Z,W(a(FF|L)),,false,CRASHED,6,5,,no goal,,,,,
+player_601_20261019T101002Z,18,10,program_run,momot,2026-10-19T10:43:15.914Z,W(a(F|LF)),,false,CRASHED,9,5,,no goal,,,,,
+player_601_20261019T101002Z,19,10,program_run,momot,2026-10-19T10:43:43.004Z,W(a(F|LFF)),,false,CRASHED,9,6,,no goal,,,,,
+player_601_20261019T101002Z,20,10,program_run,momot,2026-10-19T10:44:20.295Z,W(a(FF|LFF)),,false,CRASHED,6,7,,no goal,,,,,
+player_601_20261019T101002Z,21,10,program_run,momot,2026-10-19T10:44:54.285Z,W(a(FF|LFF)),,false,CRASHED,6,7,,no goal,,,,,
+player_601_20261019T101002Z,22,10,program_run,momot,2026-10-19T10:46:10.039Z,W(r(RF|F)),,false,CRASHED,8,5,,no goal,,,,,
+player_601_20261019T101002Z,23,10,program_run,momot,2026-10-19T10:46:29.638Z,W(r(RFF|FF)),,false,CRASHED,6,7,,no goal,,,,,
+player_697_20261019T080931Z,6,5,program_run,original,2026-10-19T08:19:03.595Z,W(a(F|L)),,true,WON,16,4,,dominated,6,W(Fl(L|)),15,4,search
+player_697_20261019T080931Z,7,6,program_run,original,2026-10-19T08:19:39.722Z,W(a(F|L)),,true,WON,40,4,,dominated,9,W(Fl(L|)),36,4,search
+player_697_20261019T080931Z,8,7,program_run,original,2026-10-19T08:21:26.307Z,W(r(R|a(F|))),,false,CRASHED,130,5,,no goal,,,,,
+player_697_20261019T080931Z,9,7,program_run,original,2026-10-19T08:21:56.305Z,W(r(RF|a(F|))),,true,WON,36,6,,dominated,9,W(Fr(R|)),27,4,search
+player_697_20261019T080931Z,10,7,program_run,original,2026-10-19T08:22:15.015Z,W(r(RF|F)),,true,WON,27,5,,dominated,9,W(Fr(R|)),27,4,search
+player_697_20261019T080931Z,11,8,program_run,original,2026-10-19T08:24:55.936Z,W(l(LF|r(RF|))F),,false,CRASHED,32,8,,no goal,,,,,
+player_697_20261019T080931Z,12,8,program_run,original,2026-10-19T08:25:43.309Z,W(l(LF|r(RF|))a(F|)),,true,WON,53,9,,dominated,9,FFW(a(|L)Fr(RF|)),43,9,search
+player_697_20261019T080931Z,13,9,program_run,original,2026-10-19T08:27:52.949Z,FLW(a(F|L)),,true,WON,22,6,,dominated,8,W(a(|L)F),22,4,search
+player_697_20261019T080931Z,14,10,program_run,original,2026-10-19T08:31:26.058Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_697_20261019T080931Z,15,10,program_run,original,2026-10-19T08:33:43.083Z,W(a(FFLFFR|)LFRF),,false,CRASHED,11,12,,no goal,,,,,
+player_697_20261019T080931Z,16,10,program_run,original,2026-10-19T08:38:32.120Z,W(a(FFLFFr(R|)|)),,false,CRASHED,19,9,,no goal,,,,,
+player_697_20261019T080931Z,17,10,program_run,original,2026-10-19T08:40:29.375Z,W(a(FFLFFR|)),,false,CRASHED,17,8,,no goal,,,,,
+player_697_20261019T080931Z,18,10,program_run,original,2026-10-19T08:42:13.195Z,W(a(FFLFF|)) + Rl(|),,false,CRASHED,9,7,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_697_20261019T080931Z,19,10,program_run,original,2026-10-19T08:42:32.994Z,W(a(FFLFFR|)),,false,CRASHED,17,8,,no goal,,,,,
+player_697_20261019T080931Z,20,10,program_run,original,2026-10-19T08:43:49.118Z,W(a(FFLFFRl(LLFRF|)|)),,false,CRASHED,13,14,,no goal,,,,,
+player_735_20261019T101000Z,6,5,program_run,momot,2026-10-19T10:26:29.604Z,W(a(F|L)),,true,WON,16,4,,dominated,6,W(Fl(L|)),15,4,search
+player_735_20261019T101000Z,7,6,program_run,momot,2026-10-19T10:27:01.948Z,W(a(F|L)),,true,WON,40,4,,dominated,9,W(Fl(L|)),36,4,search
+player_735_20261019T101000Z,8,7,program_run,momot,2026-10-19T10:27:55.709Z,W(a(F|R)),,true,WON,40,4,,dominated,9,W(Fr(R|)),27,4,search
+player_735_20261019T101000Z,9,8,program_run,momot,2026-10-19T10:29:12.885Z,W(a(F|l(L|R))),,true,WON,53,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_735_20261019T101000Z,10,9,program_run,momot,2026-10-19T10:30:21.309Z,FLFFFLW(F),,true,WON,12,8,,optimal,8,,,,
+player_735_20261019T101000Z,11,10,program_run,momot,2026-10-19T10:32:26.373Z,FFLFFRFW(l(L|F)),,false,CRASHED,129,11,,no goal,,,,,
+player_735_20261019T101000Z,12,10,program_run,momot,2026-10-19T10:32:58.245Z,FFLFFRW(l(L|F)),,false,CRASHED,130,10,,no goal,,,,,
+player_735_20261019T101000Z,13,10,program_run,momot,2026-10-19T10:33:45.886Z,FFLFFRW(l(L|)F),,false,CRASHED,11,10,,no goal,,,,,
+player_784_20261019T080940Z,5,5,program_run,original,2026-10-19T08:16:10.770Z,FFLW(F),,true,WON,8,5,,optimal,6,,,,
+player_784_20261019T080940Z,6,6,program_run,original,2026-10-19T08:16:43.888Z,W(Fl(L|)),,true,WON,36,4,,optimal,9,,,,
+player_784_20261019T080940Z,7,7,program_run,original,2026-10-19T08:17:37.788Z,W(Fa(R|)),,false,CRASHED,4,4,,no goal,,,,,
+player_784_20261019T080940Z,8,7,program_run,original,2026-10-19T08:17:50.959Z,W(Fr(R|)),,true,WON,27,4,,optimal,9,,,,
+player_784_20261019T080940Z,9,8,program_run,original,2026-10-19T08:18:35.163Z,W(Fl(L|L)),,false,CRASHED,4,5,,no goal,,,,,
+player_784_20261019T080940Z,10,8,program_run,original,2026-10-19T08:19:15.537Z,W(Fl(L|)a(R|)),,false,CRASHED,5,6,,no goal,,,,,
+player_784_20261019T080940Z,11,8,program_run,original,2026-10-19T08:19:37.338Z,W(Fl(L|)r(R|)),,true,WON,55,6,,dominated,9,W(a(|l(L|R))F),46,6,search
+player_784_20261019T080940Z,12,9,program_run,original,2026-10-19T08:21:06.922Z,W(a(F|l(L|))),,true,WON,26,5,,dominated,8,W(a(|L)F),22,4,search
+player_784_20261019T080940Z,13,10,program_run,original,2026-10-19T08:26:46.938Z,W(l(L|)Fr(R|)) + l(|),,false,CRASHED,20,6,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,14,10,program_run,original,2026-10-19T08:28:20.854Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,
+player_784_20261019T080940Z,15,10,program_run,original,2026-10-19T08:35:36.990Z,W(a(l(r(R|)|)|l(L|R))F) + FFLFFRFFLFFLFRF,,false,CRASHED,14,9,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,16,10,program_run,original,2026-10-19T08:36:16.308Z,W(l(r(a(R|)|)|l(L|R))F) + FFLFFRFFLFFLFRF,,false,CRASHED,4,9,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,17,10,program_run,original,2026-10-19T08:37:24.655Z,W(Fl(r(a(R|)|)|l(L|R))) + FFLFFRFFLFFLFRF,,false,CRASHED,5,9,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,18,10,program_run,original,2026-10-19T08:38:08.650Z,W(Fl(r(a(R|)|)|l(L|r(R|)))) + FFLFFRFFLFFLFRF,,false,CRASHED,12,10,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,19,10,program_run,original,2026-10-19T08:38:28.302Z,FFLFFRFFLFFLFRF + W(l(r(a(R|)|)|l(L|r(R|)))F),,true,WON,15,25,"2 unconnected block stacks, run one after another",dominated,9,FFLFFRFFLFFLFRF,15,15,amin-front
+player_784_20261019T080940Z,20,10,program_run,original,2026-10-19T08:38:45.113Z,FFLFFRFFLFFLFRF + W(l(r(a(R|)|)|l(L|r(R|)))F),,true,WON,15,25,"2 unconnected block stacks, run one after another",dominated,9,FFLFFRFFLFFLFRF,15,15,amin-front
+player_784_20261019T080940Z,21,10,program_run,original,2026-10-19T08:40:29.853Z,W(Fa(l(r(R|)|)|l(L|))) + FFLFFRFFLFFLFRF,,false,CRASHED,11,8,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,22,10,program_run,original,2026-10-19T08:41:49.980Z,FFLFFRFFLFFLFRF + W(a(l(r(R|)|)|l(L|))F),,true,WON,15,23,"2 unconnected block stacks, run one after another",dominated,9,FFLFFRFFLFFLFRF,15,15,amin-front
+player_784_20261019T080940Z,23,10,program_run,original,2026-10-19T08:41:58.900Z,FFLFFRFFLFFLFRF + W(a(l(r(R|)|)|l(L|))F),,true,WON,15,23,"2 unconnected block stacks, run one after another",dominated,9,FFLFFRFFLFFLFRF,15,15,amin-front
+player_784_20261019T080940Z,24,10,program_run,original,2026-10-19T08:42:14.349Z,FFLFFRFFLFFLFRF + W(a(l(r(R|)|)|l(L|))F),,true,WON,15,23,"2 unconnected block stacks, run one after another",dominated,9,FFLFFRFFLFFLFRF,15,15,amin-front
+player_784_20261019T080940Z,25,10,program_run,original,2026-10-19T08:42:57.699Z,W(a(l(r(R|)|)|l(L|))F) + FFLFFRFFLFFLFRF,,false,CRASHED,13,8,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,26,10,program_run,original,2026-10-19T08:43:33.671Z,W(a(l(r(R|)|)|)l(L|)F) + FFLFFRFFLFFLFRF,,false,CRASHED,28,8,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,27,10,program_run,original,2026-10-19T08:44:03.632Z,W(a(l(r(R|)|)|)Fl(L|)) + FFLFFRFFLFFLFRF,,false,CRASHED,17,8,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,28,10,program_run,original,2026-10-19T08:44:11.499Z,W(a(l(r(R|)|)|)Fl(L|)F) + FFLFFRFFLFFLFRF,,false,CRASHED,11,9,"2 unconnected block stacks, run one after another",no goal,,,,,
+player_784_20261019T080940Z,29,10,program_run,original,2026-10-19T08:44:22.529Z,FFLFFRFFLFFLFRF,,true,WON,15,15,,optimal,9,,,,

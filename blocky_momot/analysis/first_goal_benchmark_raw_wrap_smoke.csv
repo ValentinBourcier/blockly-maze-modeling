@@ -1,0 +1,3 @@
+level,runIndex,seed,inputXmi,henshinModule,solutionLength,populationSize,maxEvaluations,solved,timeToFirstGoalMs,timeToFirstGoalSec,generationOfFirstGoal,evaluationsAtFirstGoal,wallTimeMs,wallTimeSec,outputDir
+6,1,1,C:\Users\hfadhlil\blockly-maze-modeling\blocky_game\..\blocky_momot\model\input\6.xmi,statement_insertions_no_else_wrap.henshin,10,150,15000,true,2892,2.892,15,2250,4380,4.380,C:\Users\hfadhlil\blockly-maze-modeling\blocky_game\blocky_momot\output_fg_wrap_smoke_lvl6_run1
+6,2,2,C:\Users\hfadhlil\blockly-maze-modeling\blocky_game\..\blocky_momot\model\input\6.xmi,statement_insertions_no_else_wrap.henshin,10,150,15000,true,3135,3.135,23,3450,3463,3.463,C:\Users\hfadhlil\blockly-maze-modeling\blocky_game\blocky_momot\output_fg_wrap_smoke_lvl6_run2

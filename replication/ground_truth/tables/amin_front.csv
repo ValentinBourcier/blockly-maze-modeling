@@ -1,0 +1,7 @@
+level,A_min,routes,min_blocks,programs_at_min,example_program,simulator_status,simulator_actions,simulator_blocks,check
+5,8,1,5,1,FFLW(F),WON,8,5,ok
+6,20,1,18,1,FFFFLFFFFLFFFFW(LFF),WON,20,18,ok
+7,15,1,13,1,FFFFRFFFFW(RFF),WON,15,13,ok
+8,23,1,22,1,FFLFFLFFRFFRFFFRFLFRW(F),WON,23,22,ok
+9,12,1,8,1,FLFFFLW(F),WON,12,8,ok
+10,15,1,15,1,FFLFFRFFLFFLFRF,WON,15,15,ok

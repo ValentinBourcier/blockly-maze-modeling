@@ -1,0 +1,5 @@
+session,level,program,status,power_kW_actions,memory_kB_blocks,pareto,n_loads,first_load,built_before,run_after
+player_253_20261019T101009Z,6,W(Fl(L|)),WON,36,4,optimal,3,2026-10-19T10:29:26Z,FALSE,TRUE
+player_253_20261019T101009Z,9,FLFFFLW(F),WON,12,8,optimal,1,2026-10-19T10:48:27Z,TRUE,FALSE
+player_181_20261019T101005Z,10,l(W()|)l(|)W(),CRASHED,2,4,no goal,1,2026-10-19T10:40:28Z,FALSE,FALSE
+player_253_20261019T101009Z,10,FFLFFRFFLFFLFRW(F),WON,15,16,dominated,1,2026-10-19T10:44:19Z,FALSE,FALSE

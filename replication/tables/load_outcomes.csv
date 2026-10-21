@@ -1,0 +1,11 @@
+case,step,participant,index,level,time,program,goal,actions,blocks,note,interpretation
+1,load,player_181,19,10,10:40:28,l(W()|)l(|)W(),no,2,4,,
+1,next run,player_181,20,10,10:41:46,W(a(F|l(L|R))),no,129,6,"7 blocks from load: changed (no own run before); the next run does not reach the goal, nor does the load","exploration first: no own run on this level before the load; next run is 7 blocks from the candidate, as many as building it from scratch, so probably not built from it; the next run does not reach the goal, nor does the candidate; 2 searches on this level, only this one placed in time; intent not logged"
+2,load,player_253,10,6,10:29:26,W(Fl(L|)),yes,36,4,,
+2,load,player_253,11,6,10:29:49,W(Fl(L|)),yes,36,4,same candidate loaded again 23 s after index 10,
+2,load,player_253,12,6,10:29:50,W(Fl(L|)),yes,36,4,double click: loaded again 0.2 s after index 11,
+2,next run,player_253,13,6,10:29:53,W(Fl(L|)),yes,36,4,ran it unchanged,exploration first: no own run on this level before the load; ran the candidate unchanged; the candidate is optimal; the only search on this level; intent not logged
+3,own run,player_253,18,10,10:43:19,FFLFFRFFLFFLFRF,yes,15,15,,
+3,load,player_253,19,10,10:44:19,FFLFFRFFLFFLFRW(F),yes,15,16,never ran it,"own model first: explored from their own goal-reaching model (candidate 1 block from it); did not run the candidate; the candidate is worse than their own model, which was already optimal; 3 searches on this level, only this one placed in time; intent not logged"
+4,own run,player_253,16,9,10:39:46,FLFFFLW(F),yes,12,8,,
+4,load,player_253,20,9,10:48:27,FLFFFLW(F),yes,12,8,never ran it,"own model first: explored from their own goal-reaching model (candidate identical to it); did not run the candidate; the candidate has the same actions and blocks as their own model, which was already optimal; 2 searches on this level, only this one placed in time; intent not logged"
