@@ -42,12 +42,15 @@ import java.util.function.Consumer;
  * shortest path over (cell, heading). The straight-line program along that route is run with BlockySimulator as a
  * check: it must reach the goal with A_min actions and A_min blocks.
  *
+ * Mode "amin-front": per level, the fewest blocks of a program with A_min actions (see {@link #aminFront}).
+ *
  * Mode "check-sim": checks 1, 2 and 4 of the search (Ground-Truth-Mission.md, step 2 of plan 2). Generates every
  * program the game can build up to a block limit, compares the count with the closed form, runs every program with the
  * fast simulator and with BlockySimulator on each level (both must agree on goal reached and Actions), and checks that
  * no goal-reaching program has fewer Actions than A_min.
  *
  * Usage: GroundTruthEnumerator amin &lt;levels dir with N.xmi&gt; &lt;out.csv&gt; &lt;level&gt;...
+ *        GroundTruthEnumerator amin-front &lt;levels dir&gt; &lt;out.csv&gt; &lt;level&gt;...
  *        GroundTruthEnumerator check-sim &lt;levels dir&gt; &lt;max blocks&gt; &lt;level&gt;...
  *
  * Program text: F/L/R = move forward / turn left / turn right, W(..) = repeat until goal,
@@ -151,6 +154,156 @@ public final class GroundTruthEnumerator {
                 w.println(String.join(",", String.valueOf(n), String.valueOf(route.length()), String.valueOf(moves),
                         String.valueOf(route.length() - moves), route, String.valueOf(status), String.valueOf(actions),
                         String.valueOf(blocks), ok ? "ok" : "FAILED"));
+            }
+        }
+        System.out.println("CSV written to " + out.getAbsolutePath());
+    }
+
+    // ---- A_min front ----
+
+    /** The (cell, heading) states reached by one move forward, one left turn and one right turn (-1 if a wall). */
+    private int[] successors(int s) {
+        int cell = s / 4, dir = s % 4;
+        int fwd = adj[cell][dir];
+        return new int[] { fwd >= 0 && !wall[fwd] ? fwd * 4 + dir : -1, cell * 4 + (dir + 3) % 4, cell * 4 + (dir + 1) % 4 };
+    }
+
+    /** Every route of A_min moves and turns from the start to the goal, as straight-line program text. */
+    private List<String> shortestRoutes(int limit) {
+        int states = adj.length * 4;
+        // fewest steps from the start to each state, and from each state to a goal state
+        int[] fromStart = new int[states], toGoal = new int[states];
+        Arrays.fill(fromStart, -1);
+        Arrays.fill(toGoal, -1);
+        List<List<Integer>> predecessors = new ArrayList<>();
+        for (int s = 0; s < states; s++) predecessors.add(new ArrayList<>());
+        for (int s = 0; s < states; s++) {
+            for (int t : successors(s)) if (t >= 0) predecessors.get(t).add(s);
+        }
+        ArrayDeque<Integer> queue = new ArrayDeque<>();
+        int s0 = startCell * 4 + startDir;
+        fromStart[s0] = 0;
+        queue.add(s0);
+        while (!queue.isEmpty()) {
+            int s = queue.removeFirst();
+            for (int t : successors(s)) {
+                if (t >= 0 && fromStart[t] < 0) {
+                    fromStart[t] = fromStart[s] + 1;
+                    queue.addLast(t);
+                }
+            }
+        }
+        for (int s = 0; s < states; s++) {
+            if (win[s / 4]) {
+                toGoal[s] = 0;
+                queue.add(s);
+            }
+        }
+        while (!queue.isEmpty()) {
+            int s = queue.removeFirst();
+            for (int t : predecessors.get(s)) {
+                if (toGoal[t] < 0) {
+                    toGoal[t] = toGoal[s] + 1;
+                    queue.addLast(t);
+                }
+            }
+        }
+        List<String> routes = new ArrayList<>();
+        if (toGoal[s0] < 0) return routes;
+        collectRoutes(s0, toGoal[s0], fromStart, toGoal, new StringBuilder(), routes, limit);
+        return routes;
+    }
+
+    /** Depth-first over the states on a shortest route (steps from the start + steps to the goal = A_min). */
+    private void collectRoutes(int s, int aMin, int[] fromStart, int[] toGoal, StringBuilder route, List<String> routes,
+            int limit) {
+        if (win[s / 4] && route.length() > 0) {
+            routes.add(route.toString());
+            if (routes.size() > limit) throw new IllegalStateException("more than " + limit + " shortest routes");
+            return;
+        }
+        int[] next = successors(s);
+        char[] step = { 'F', 'L', 'R' };
+        for (int k = 0; k < 3; k++) {
+            int t = next[k];
+            if (t < 0 || fromStart[t] != fromStart[s] + 1 || fromStart[t] + toGoal[t] != aMin) continue;
+            route.append(step[k]);
+            collectRoutes(t, aMin, fromStart, toGoal, route, routes, limit);
+            route.setLength(route.length() - 1);
+        }
+    }
+
+    /**
+     * Mode "amin-front": per level, the fewest blocks of a program with A_min actions, so the point of the front with
+     * the fewest Actions. A program with A_min actions runs no if-check (each check is an action), so what it runs is a
+     * shortest route; nothing follows a loop, and a loop checks the goal only before each round. So it is a straight
+     * line, or a straight start followed by one loop whose body, repeated a whole number of times, is the rest of the
+     * route. Every shortest route and every such split is tried; the programs with the fewest blocks are run with
+     * BlockySimulator as a check (goal reached, A_min actions, the same block count).
+     */
+    private static void aminFront(File levelsDir, File out, List<Integer> levels) throws IOException {
+        out.getAbsoluteFile().getParentFile().mkdirs();
+        try (PrintWriter w = new PrintWriter(out, StandardCharsets.UTF_8)) {
+            w.println("level,A_min,routes,min_blocks,programs_at_min,example_program,simulator_status,simulator_actions,"
+                    + "simulator_blocks,check");
+            System.out.printf("%-5s %-5s %-7s %-10s %-9s %-9s %-6s %s%n", "Level", "A_min", "Routes", "Min blocks",
+                    "Programs", "Act/Blk", "Check", "Example program");
+            for (int n : levels) {
+                Level level = loadLevel(new File(levelsDir, n + ".xmi"));
+                List<String> routes = new GroundTruthEnumerator(level).shortestRoutes(1_000_000);
+                if (routes.isEmpty()) {
+                    System.out.printf("%-5d goal not reachable%n", n);
+                    w.println(n + ",,0,,,,,,,goal not reachable");
+                    continue;
+                }
+                int aMin = routes.get(0).length();
+                int minBlocks = Integer.MAX_VALUE;
+                java.util.TreeSet<String> best = new java.util.TreeSet<>();
+                for (String route : routes) {
+                    for (int p = 0; p <= aMin; p++) {
+                        String rest = route.substring(p);
+                        for (int len = 0; len <= rest.length(); len++) {
+                            String program;
+                            if (len == 0) {
+                                if (!rest.isEmpty()) continue;
+                                program = route;  // the straight line
+                            } else {
+                                if (rest.length() % len != 0 || !rest.substring(0, len).repeat(rest.length() / len).equals(rest)) continue;
+                                program = route.substring(0, p) + "W(" + rest.substring(0, len) + ")";
+                            }
+                            int blocks = len == 0 ? aMin : p + 1 + len;
+                            if (blocks < minBlocks) {
+                                minBlocks = blocks;
+                                best.clear();
+                            }
+                            if (blocks == minBlocks) best.add(program);
+                        }
+                    }
+                }
+                // every program with the fewest blocks must reach the goal in BlockySimulator with A_min actions
+                boolean ok = true;
+                String status = "", actions = "", blocks = "";
+                for (String program : best) {
+                    Body body = toBody(program);
+                    level.setSolution(body);
+                    GameStatus s = BlockySimulator.run(level);
+                    int a = BlockySimulator.simulationSteps(level), b = BlockyProgramMetrics.countStatements(body);
+                    if (program.equals(best.first())) {
+                        status = String.valueOf(s);
+                        actions = String.valueOf(a);
+                        blocks = String.valueOf(b);
+                    }
+                    if (s != GameStatus.WON || a != aMin || b != minBlocks) {
+                        ok = false;
+                        System.out.printf("      not confirmed: %s (%s, %d actions, %d blocks)%n", program, s, a, b);
+                    }
+                }
+                System.out.printf("%-5d %-5d %-7d %-10d %-9d %-9s %-6s %s%n", n, aMin, routes.size(), minBlocks, best.size(),
+                        actions + "/" + blocks, ok ? "ok" : "FAILED", best.first());
+                if (best.size() > 1 && best.size() <= 10) System.out.println("      all: " + String.join(" ", best));
+                w.println(String.join(",", String.valueOf(n), String.valueOf(aMin), String.valueOf(routes.size()),
+                        String.valueOf(minBlocks), String.valueOf(best.size()), best.first(), status, actions, blocks,
+                        ok ? "ok" : "FAILED"));
             }
         }
         System.out.println("CSV written to " + out.getAbsolutePath());
@@ -360,8 +513,13 @@ public final class GroundTruthEnumerator {
 
     /** Runs the program; afterwards {@link #actions} holds the action count. Returns whether it reaches the goal. */
     boolean simulate(Node[] program) {
-        pos = startCell;
-        dir = startDir;
+        return simulateFrom(program, startCell, startDir);
+    }
+
+    /** Runs the program from the given cell and heading, with no actions done yet. */
+    boolean simulateFrom(Node[] program, int cell, int heading) {
+        pos = cell;
+        dir = heading;
         actions = 0;
         crashed = false;
         execSeq(program);
@@ -598,6 +756,113 @@ public final class GroundTruthEnumerator {
         System.out.printf("Written to %s (%.1fs)%n", outDir.getAbsolutePath(), sec(t0));
     }
 
+    // ---- loop search ----
+
+    /** A loop body that reaches the goal from one state: its blocks and the actions of the loop. */
+    private record Winner(int blocks, int actions, Node[] body) {
+    }
+
+    /**
+     * Mode "loop-search": the programs of the reduced form (a straight start, then one loop) with at most maxBlocks
+     * blocks whose loop body has at most maxBody blocks, so larger programs than a full search reaches, but not all of
+     * them. Keeps every (Blocks, Actions) pair reached with at most maxActions actions, with one example confirmed by
+     * BlockySimulator, in output/level{N}_b{maxBlocks}_body{maxBody}_a{maxActions}.csv (same columns as the tables).
+     * A pair found is exact (a real program); a pair not found may still exist with a larger body. Each body is run
+     * once per state (cell, heading) a straight start can end in, and combined with every start ending there.
+     */
+    private static void loopSearch(File levelsDir, int n, int maxBlocks, int maxBody, int maxActionsKept, File outDir)
+            throws IOException {
+        long t0 = System.currentTimeMillis();
+        GroundTruthEnumerator m = new GroundTruthEnumerator(loadLevel(new File(levelsDir, n + ".xmi")));
+        if (maxActionsKept > m.maxActions) throw new IllegalArgumentException("max actions above the game's tick limit");
+
+        // the straight starts that do not crash, by the state they end in (no redundant turns, as in reducedPrograms)
+        Map<Integer, List<String>> starts = new java.util.HashMap<>();
+        java.util.TreeMap<Integer, java.util.TreeMap<Integer, String>> table = new java.util.TreeMap<>();
+        ArrayDeque<Object[]> todo = new ArrayDeque<>();
+        todo.add(new Object[] { "", m.startCell * 4 + m.startDir });
+        long startCount = 0;
+        while (!todo.isEmpty()) {
+            Object[] t = todo.removeFirst();
+            String prefix = (String) t[0];
+            int s = (Integer) t[1];
+            startCount++;
+            starts.computeIfAbsent(s, k -> new ArrayList<>()).add(prefix);
+            if (m.win[s / 4] && !prefix.isEmpty() && prefix.length() <= maxActionsKept) {
+                table.computeIfAbsent(prefix.length(), k -> new java.util.TreeMap<>()).putIfAbsent(prefix.length(), prefix);
+            }
+            if (prefix.length() + 2 > maxBlocks) continue;  // a loop needs at least 2 blocks
+            int[] next = m.successors(s);
+            char[] step = { 'F', 'L', 'R' };
+            for (int k = 0; k < 3; k++) {
+                if (next[k] < 0) continue;
+                String longer = prefix + step[k];
+                if (longer.endsWith("LR") || longer.endsWith("RL") || longer.endsWith("RR") || longer.endsWith("LLL")) continue;
+                todo.addLast(new Object[] { longer, next[k] });
+            }
+        }
+
+        // every loop body up to maxBody blocks, run from every end state of a start
+        Map<Integer, List<Winner>> winners = new java.util.HashMap<>();
+        Sequences bodies = new Sequences(true);
+        long[] runs = { 0 };
+        for (int b = 1; b <= maxBody; b++) {
+            int size = b;
+            bodies.forEach(b, body -> {
+                Node[] loop = { new Node('W', body, null) };
+                for (Map.Entry<Integer, List<String>> e : starts.entrySet()) {
+                    int s = e.getKey();
+                    if (m.win[s / 4]) continue;  // the loop would not run
+                    runs[0]++;
+                    if (m.simulateFrom(loop, s / 4, s % 4) && m.actions <= maxActionsKept) {
+                        winners.computeIfAbsent(s, k -> new ArrayList<>()).add(new Winner(size, m.actions, body));
+                    }
+                }
+            });
+        }
+
+        // combine: start + loop
+        for (Map.Entry<Integer, List<Winner>> e : winners.entrySet()) {
+            for (String prefix : starts.get(e.getKey())) {
+                for (Winner w : e.getValue()) {
+                    int blocks = prefix.length() + 1 + w.blocks(), actions = prefix.length() + w.actions();
+                    if (blocks > maxBlocks || actions > maxActionsKept) continue;
+                    java.util.TreeMap<Integer, String> row = table.computeIfAbsent(blocks, k -> new java.util.TreeMap<>());
+                    String program = prefix + "W(" + text(w.body()) + ")";
+                    String old = row.get(actions);
+                    if (old == null || program.compareTo(old) < 0) row.put(actions, program);
+                }
+            }
+        }
+
+        java.util.Set<String> onFront = new java.util.HashSet<>();
+        for (int[] p : front(table)) onFront.add(p[0] + "/" + p[1]);
+        outDir.mkdirs();
+        File out = new File(outDir, "level" + n + "_b" + maxBlocks + "_body" + maxBody + "_a" + maxActionsKept + ".csv");
+        int rows = 0, confirmed = 0;
+        try (PrintWriter w = new PrintWriter(out, StandardCharsets.UTF_8)) {
+            w.println("blocks,actions,front,example_program,confirmed_by_BlockySimulator");
+            for (Map.Entry<Integer, java.util.TreeMap<Integer, String>> e : table.entrySet()) {
+                for (Map.Entry<Integer, String> pair : e.getValue().entrySet()) {
+                    int blocks = e.getKey(), actions = pair.getKey();
+                    Body body = toBody(pair.getValue());
+                    m.level.setSolution(body);
+                    boolean ok = BlockySimulator.run(m.level) == GameStatus.WON
+                            && BlockySimulator.simulationSteps(m.level) == actions
+                            && BlockyProgramMetrics.countStatements(body) == blocks;
+                    rows++;
+                    if (ok) confirmed++;
+                    boolean f = onFront.contains(blocks + "/" + actions);
+                    w.println(blocks + "," + actions + "," + (f ? "yes" : "no") + "," + pair.getValue() + "," + (ok ? "yes" : "NO"));
+                    if (f) System.out.printf("  front: %d blocks, %d actions  %s%s%n", blocks, actions, pair.getValue(), ok ? "" : "  NOT CONFIRMED");
+                }
+            }
+        }
+        System.out.printf("Level %d: %d straight starts, %d end states, %d body runs, %d pairs (%d confirmed), %.1fs%n", n,
+                startCount, starts.size(), runs[0], rows, confirmed, sec(t0));
+        System.out.println("Written to " + out.getAbsolutePath());
+    }
+
     // ---- check 5 ----
 
     /**
@@ -739,6 +1004,17 @@ public final class GroundTruthEnumerator {
             amin(new File(args[1]), new File(args[2]), levels);
             return;
         }
+        if (args.length >= 4 && "amin-front".equals(args[0])) {
+            List<Integer> levels = new ArrayList<>();
+            for (int i = 3; i < args.length; i++) levels.add(Integer.parseInt(args[i]));
+            aminFront(new File(args[1]), new File(args[2]), levels);
+            return;
+        }
+        if (args.length == 7 && "loop-search".equals(args[0])) {
+            loopSearch(new File(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]), Integer.parseInt(args[4]),
+                    Integer.parseInt(args[5]), new File(args[6]));
+            return;
+        }
         if (args.length >= 4 && "check-sim".equals(args[0])) {
             List<Integer> levels = new ArrayList<>();
             for (int i = 3; i < args.length; i++) levels.add(Integer.parseInt(args[i]));
@@ -764,6 +1040,8 @@ public final class GroundTruthEnumerator {
             return;
         }
         System.err.println("Usage: GroundTruthEnumerator amin <levels dir> <out.csv> <level>...");
+        System.err.println("       GroundTruthEnumerator amin-front <levels dir> <out.csv> <level>...");
+        System.err.println("       GroundTruthEnumerator loop-search <levels dir> <level> <max blocks> <max body blocks> <max actions> <out dir>");
         System.err.println("       GroundTruthEnumerator check-sim <levels dir> <max blocks> <level>...");
         System.exit(2);
     }

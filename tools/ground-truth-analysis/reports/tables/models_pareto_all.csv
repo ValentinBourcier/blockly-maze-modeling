@@ -1,0 +1,8 @@
+level,n_goal_models,n_optimal,n_dominated,n_not_covered,percent_optimal,percent_optimal_of_decided
+5,16,8,8,0,50,50
+6,10,2,8,0,20,20
+7,13,2,11,0,15.4,15.4
+8,14,0,14,0,0,0
+9,10,4,6,0,40,40
+10,19,9,10,0,47.4,47.4
+all,82,25,57,0,30.5,30.5

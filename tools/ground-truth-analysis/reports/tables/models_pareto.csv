@@ -1,0 +1,13 @@
+level,variant,n_goal_models,n_optimal,n_dominated,n_not_covered,percent_optimal,percent_optimal_of_decided
+5,control,6,2,4,0,33.3,33.3
+5,treatment,10,6,4,0,60,60
+6,control,5,1,4,0,20,20
+6,treatment,5,1,4,0,20,20
+7,control,6,1,5,0,16.7,16.7
+7,treatment,7,1,6,0,14.3,14.3
+8,control,7,0,7,0,0,0
+8,treatment,7,0,7,0,0,0
+9,control,5,1,4,0,20,20
+9,treatment,5,3,2,0,60,60
+10,control,14,5,9,0,35.7,35.7
+10,treatment,5,4,1,0,80,80

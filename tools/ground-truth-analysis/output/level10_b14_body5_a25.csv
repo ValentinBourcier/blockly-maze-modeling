@@ -1,0 +1,16 @@
+blocks,actions,front,example_program,confirmed_by_BlockySimulator
+11,19,yes,FFLFFW(r(R|FL)F),yes
+11,22,no,FFLFLW(r(R|FL)F),yes
+12,19,no,FFLFFRW(Fa(|R)FL),yes
+12,20,no,FFLFFRW(Fa(FL|R)),yes
+12,25,no,FFLFFRW(Fl(L|r(R|))),yes
+13,18,yes,FFLFFRFW(a(FL|R)F),yes
+13,20,no,FFLFFLLW(LFa(|R)F),yes
+13,23,no,FFLFFRFW(Fl(L|r(R|))),yes
+13,24,no,FFLFFRFW(Fl(L|a(|R))),yes
+13,25,no,FFLFFRFW(a(|R)Fl(L|)),yes
+14,17,yes,FFLFFRFFW(LFa(|R)F),yes
+14,21,no,FFLFFRFFW(l(L|a(|R))F),yes
+14,23,no,FFLFFFLLW(a(FL|R)F),yes
+14,24,no,FFLFFRFRW(l(L|a(|R))F),yes
+14,25,no,FFLFFRFFW(l(L|)a(F|R)),yes
