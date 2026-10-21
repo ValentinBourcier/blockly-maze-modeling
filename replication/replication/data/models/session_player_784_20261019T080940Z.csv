@@ -1,0 +1,30 @@
+session,index,level,type,variant,timestamp,program,matchesLoadedCandidate,reachesGoal,status,power_kW_actions,memory_kB_blocks,note
+player_784_20261019T080940Z,1,1,program_run,original,2026-10-19T08:11:40.599Z,W(F),,true,WON,2,2,
+player_784_20261019T080940Z,2,2,program_run,original,2026-10-19T08:13:33.828Z,FLFRF,,true,WON,5,5,
+player_784_20261019T080940Z,3,3,program_run,original,2026-10-19T08:13:51.140Z,W(F),,true,WON,5,2,
+player_784_20261019T080940Z,4,4,program_run,original,2026-10-19T08:14:27.682Z,W(FLFR),,true,WON,16,5,
+player_784_20261019T080940Z,5,5,program_run,original,2026-10-19T08:16:10.770Z,FFLW(F),,true,WON,8,5,
+player_784_20261019T080940Z,6,6,program_run,original,2026-10-19T08:16:43.888Z,W(Fl(L|)),,true,WON,36,4,
+player_784_20261019T080940Z,7,7,program_run,original,2026-10-19T08:17:37.788Z,W(Fa(R|)),,false,CRASHED,4,4,
+player_784_20261019T080940Z,8,7,program_run,original,2026-10-19T08:17:50.959Z,W(Fr(R|)),,true,WON,27,4,
+player_784_20261019T080940Z,9,8,program_run,original,2026-10-19T08:18:35.163Z,W(Fl(L|L)),,false,CRASHED,4,5,
+player_784_20261019T080940Z,10,8,program_run,original,2026-10-19T08:19:15.537Z,W(Fl(L|)a(R|)),,false,CRASHED,5,6,
+player_784_20261019T080940Z,11,8,program_run,original,2026-10-19T08:19:37.338Z,W(Fl(L|)r(R|)),,true,WON,55,6,
+player_784_20261019T080940Z,12,9,program_run,original,2026-10-19T08:21:06.922Z,W(a(F|l(L|))),,true,WON,26,5,
+player_784_20261019T080940Z,13,10,program_run,original,2026-10-19T08:26:46.938Z,W(l(L|)Fr(R|)) + l(|),,false,CRASHED,20,6,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,14,10,program_run,original,2026-10-19T08:28:20.854Z,FFLFFRFFLFFLFRF,,true,WON,15,15,
+player_784_20261019T080940Z,15,10,program_run,original,2026-10-19T08:35:36.990Z,W(a(l(r(R|)|)|l(L|R))F) + FFLFFRFFLFFLFRF,,false,CRASHED,14,9,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,16,10,program_run,original,2026-10-19T08:36:16.308Z,W(l(r(a(R|)|)|l(L|R))F) + FFLFFRFFLFFLFRF,,false,CRASHED,4,9,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,17,10,program_run,original,2026-10-19T08:37:24.655Z,W(Fl(r(a(R|)|)|l(L|R))) + FFLFFRFFLFFLFRF,,false,CRASHED,5,9,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,18,10,program_run,original,2026-10-19T08:38:08.650Z,W(Fl(r(a(R|)|)|l(L|r(R|)))) + FFLFFRFFLFFLFRF,,false,CRASHED,12,10,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,19,10,program_run,original,2026-10-19T08:38:28.302Z,FFLFFRFFLFFLFRF + W(l(r(a(R|)|)|l(L|r(R|)))F),,true,WON,15,25,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,20,10,program_run,original,2026-10-19T08:38:45.113Z,FFLFFRFFLFFLFRF + W(l(r(a(R|)|)|l(L|r(R|)))F),,true,WON,15,25,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,21,10,program_run,original,2026-10-19T08:40:29.853Z,W(Fa(l(r(R|)|)|l(L|))) + FFLFFRFFLFFLFRF,,false,CRASHED,11,8,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,22,10,program_run,original,2026-10-19T08:41:49.980Z,FFLFFRFFLFFLFRF + W(a(l(r(R|)|)|l(L|))F),,true,WON,15,23,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,23,10,program_run,original,2026-10-19T08:41:58.900Z,FFLFFRFFLFFLFRF + W(a(l(r(R|)|)|l(L|))F),,true,WON,15,23,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,24,10,program_run,original,2026-10-19T08:42:14.349Z,FFLFFRFFLFFLFRF + W(a(l(r(R|)|)|l(L|))F),,true,WON,15,23,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,25,10,program_run,original,2026-10-19T08:42:57.699Z,W(a(l(r(R|)|)|l(L|))F) + FFLFFRFFLFFLFRF,,false,CRASHED,13,8,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,26,10,program_run,original,2026-10-19T08:43:33.671Z,W(a(l(r(R|)|)|)l(L|)F) + FFLFFRFFLFFLFRF,,false,CRASHED,28,8,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,27,10,program_run,original,2026-10-19T08:44:03.632Z,W(a(l(r(R|)|)|)Fl(L|)) + FFLFFRFFLFFLFRF,,false,CRASHED,17,8,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,28,10,program_run,original,2026-10-19T08:44:11.499Z,W(a(l(r(R|)|)|)Fl(L|)F) + FFLFFRFFLFFLFRF,,false,CRASHED,11,9,"2 unconnected block stacks, run one after another"
+player_784_20261019T080940Z,29,10,program_run,original,2026-10-19T08:44:22.529Z,FFLFFRFFLFFLFRF,,true,WON,15,15,
