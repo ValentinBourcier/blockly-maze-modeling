@@ -33,6 +33,9 @@ momot_sessions/
 node_modules/
 **/node_modules/
 
+# Python
+__pycache__/
+
 
 # local secrets (admin password for docker compose)
 .env
