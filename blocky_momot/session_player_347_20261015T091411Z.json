@@ -1,0 +1,48 @@
+{
+  "sessionId": "player_347_20261015T091411Z",
+  "userId": "player_347",
+  "totalDurationMs": 2625114,
+  "exportedAt": "2026-10-15T10:50:41.707Z",
+  "levels": {
+    "1": {
+      "elapsedMs": 61026,
+      "variant": "original"
+    },
+    "2": {
+      "elapsedMs": 124029,
+      "variant": "original"
+    },
+    "3": {
+      "elapsedMs": 44001,
+      "variant": "original"
+    },
+    "4": {
+      "elapsedMs": 209512,
+      "variant": "original"
+    },
+    "5": {
+      "elapsedMs": 68505,
+      "variant": "original"
+    },
+    "6": {
+      "elapsedMs": 197730,
+      "variant": "original"
+    },
+    "7": {
+      "elapsedMs": 108503,
+      "variant": "original"
+    },
+    "8": {
+      "elapsedMs": 279015,
+      "variant": "original"
+    },
+    "9": {
+      "elapsedMs": 192000,
+      "variant": "original"
+    },
+    "10": {
+      "elapsedMs": 1340793,
+      "variant": "original"
+    }
+  }
+}

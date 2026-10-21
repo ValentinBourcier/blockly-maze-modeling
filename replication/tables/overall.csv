@@ -1,0 +1,7 @@
+metric,control_mean,control_median,treatment_mean,treatment_median
+level_runs,5.33,3,2.5,2
+level_elapsed_min,6.09,2.27,4.37,2.63
+clem_searches,0,0,0.37,0
+solutions_loaded,0,0,0.2,0
+min_power_kW,29.66,26,28.72,26
+min_memory_kB,7.86,6,6.52,6

@@ -1,0 +1,442 @@
+{
+  "sessionId": "player_735_20261019T101000Z",
+  "userId": "player_735",
+  "startedAt": "2026-10-19T10:10:00.526Z",
+  "totalElapsedMs": 1559514,
+  "completedLevels": 10,
+  "totalProgramRuns": 13,
+  "totalMomotSearches": 1,
+  "totalSolutionsLoaded": 0,
+  "totalDirectManipulations": 1,
+  "levels": {
+    "1": {
+      "elapsedMs": 200002,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:13:20.953Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        121001
+      ],
+      "iterationAvgMs": 121001,
+      "iterationMedianMs": 121001,
+      "wallIterationsMs": [
+        121215
+      ],
+      "wallIterationAvgMs": 121215,
+      "wallIterationMedianMs": 121215,
+      "loadedGenerations": []
+    },
+    "2": {
+      "elapsedMs": 126501,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:15:27.692Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        120001
+      ],
+      "iterationAvgMs": 120001,
+      "iterationMedianMs": 120001,
+      "wallIterationsMs": [
+        120080
+      ],
+      "wallIterationAvgMs": 120080,
+      "wallIterationMedianMs": 120080,
+      "loadedGenerations": []
+    },
+    "3": {
+      "elapsedMs": 219500,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:19:07.547Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        128001
+      ],
+      "iterationAvgMs": 128001,
+      "iterationMedianMs": 128001,
+      "wallIterationsMs": [
+        128025
+      ],
+      "wallIterationAvgMs": 128025,
+      "wallIterationMedianMs": 128025,
+      "loadedGenerations": []
+    },
+    "4": {
+      "elapsedMs": 420501,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:26:08.529Z",
+      "programRuns": 2,
+      "momotSearches": 1,
+      "solutionsLoaded": 0,
+      "directManipulations": 1,
+      "iterationsMs": [
+        47501,
+        19000
+      ],
+      "iterationAvgMs": 33251,
+      "iterationMedianMs": 33251,
+      "wallIterationsMs": [
+        47687,
+        19169
+      ],
+      "wallIterationAvgMs": 33428,
+      "wallIterationMedianMs": 33428,
+      "loadedGenerations": []
+    },
+    "5": {
+      "elapsedMs": 35501,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:26:44.506Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        20501
+      ],
+      "iterationAvgMs": 20501,
+      "iterationMedianMs": 20501,
+      "wallIterationsMs": [
+        20999
+      ],
+      "wallIterationAvgMs": 20999,
+      "wallIterationMedianMs": 20999,
+      "loadedGenerations": []
+    },
+    "6": {
+      "elapsedMs": 44501,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:27:29.339Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        17001
+      ],
+      "iterationAvgMs": 17001,
+      "iterationMedianMs": 17001,
+      "wallIterationsMs": [
+        17385
+      ],
+      "wallIterationAvgMs": 17385,
+      "wallIterationMedianMs": 17385,
+      "loadedGenerations": []
+    },
+    "7": {
+      "elapsedMs": 50000,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:28:19.586Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        26001
+      ],
+      "iterationAvgMs": 26001,
+      "iterationMedianMs": 26001,
+      "wallIterationsMs": [
+        26310
+      ],
+      "wallIterationAvgMs": 26310,
+      "wallIterationMedianMs": 26310,
+      "loadedGenerations": []
+    },
+    "8": {
+      "elapsedMs": 87002,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:29:46.916Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        53002
+      ],
+      "iterationAvgMs": 53002,
+      "iterationMedianMs": 53002,
+      "wallIterationsMs": [
+        53242
+      ],
+      "wallIterationAvgMs": 53242,
+      "wallIterationMedianMs": 53242,
+      "loadedGenerations": []
+    },
+    "9": {
+      "elapsedMs": 45002,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:30:32.389Z",
+      "programRuns": 1,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        34001
+      ],
+      "iterationAvgMs": 34001,
+      "iterationMedianMs": 34001,
+      "wallIterationsMs": [
+        34327
+      ],
+      "wallIterationAvgMs": 34327,
+      "wallIterationMedianMs": 34327,
+      "loadedGenerations": []
+    },
+    "10": {
+      "elapsedMs": 331004,
+      "variant": "momot",
+      "updatedAt": "2026-10-19T10:36:07.432Z",
+      "programRuns": 3,
+      "momotSearches": 0,
+      "solutionsLoaded": 0,
+      "directManipulations": 0,
+      "iterationsMs": [
+        113504,
+        32000,
+        47500
+      ],
+      "iterationAvgMs": 64335,
+      "iterationMedianMs": 47500,
+      "wallIterationsMs": [
+        113932,
+        31872,
+        47641
+      ],
+      "wallIterationAvgMs": 64482,
+      "wallIterationMedianMs": 47641,
+      "loadedGenerations": []
+    }
+  },
+  "events": [
+    {
+      "timestamp": "2026-10-19T10:12:01.740Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 1,
+      "modelName": "workspace",
+      "modelFile": "models/001_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 121001,
+      "iterationMs": 121001,
+      "wallIterationMs": 121215,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:10:00.525Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_moveForward\" movable=\"false\"/></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:15:21.106Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 2,
+      "modelName": "workspace",
+      "modelFile": "models/002_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 120001,
+      "iterationMs": 120001,
+      "wallIterationMs": 120080,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:13:21.026Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field><next><block type=\"maze_moveForward\"/></next></block></next></block></next></block></next></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:17:35.804Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 3,
+      "modelName": "workspace",
+      "modelFile": "models/003_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 128001,
+      "iterationMs": 128001,
+      "wallIterationMs": 128025,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:15:27.779Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_moveForward\"/></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:19:55.306Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 4,
+      "modelName": "workspace",
+      "modelFile": "models/004_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 47501,
+      "iterationMs": 47501,
+      "wallIterationMs": 47687,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:19:07.619Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_moveForward\"><next><block type=\"maze_ifElse\"><field name=\"DIR\">isPathLeft</field><statement name=\"DO\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"/></next></block></statement><statement name=\"ELSE\"><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field><next><block type=\"maze_moveForward\"/></next></block></statement></block></next></block></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:20:14.475Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 4,
+      "modelName": "workspace",
+      "modelFile": "models/005_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 66501,
+      "iterationMs": 19000,
+      "wallIterationMs": 19169,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:19:07.619Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_moveForward\"><next><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathLeft</field><statement name=\"DO\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"/></next></block></statement><statement name=\"ELSE\"><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field><next><block type=\"maze_moveForward\"/></next></block></statement></block></statement></block></next></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:26:29.604Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 5,
+      "modelName": "workspace",
+      "modelFile": "models/006_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 20501,
+      "iterationMs": 20501,
+      "wallIterationMs": 20999,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:26:08.605Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathForward</field><statement name=\"DO\"><block type=\"maze_moveForward\"/></statement><statement name=\"ELSE\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field></block></statement></block></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:27:01.948Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 6,
+      "modelName": "workspace",
+      "modelFile": "models/007_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 17001,
+      "iterationMs": 17001,
+      "wallIterationMs": 17385,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:26:44.563Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathForward</field><statement name=\"DO\"><block type=\"maze_moveForward\"/></statement><statement name=\"ELSE\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field></block></statement></block></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:27:55.709Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 7,
+      "modelName": "workspace",
+      "modelFile": "models/008_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 26001,
+      "iterationMs": 26001,
+      "wallIterationMs": 26310,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:27:29.399Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathForward</field><statement name=\"DO\"><block type=\"maze_moveForward\"/></statement><statement name=\"ELSE\"><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field></block></statement></block></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:29:12.885Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 8,
+      "modelName": "workspace",
+      "modelFile": "models/009_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 53002,
+      "iterationMs": 53002,
+      "wallIterationMs": 53242,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:28:19.643Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathForward</field><statement name=\"DO\"><block type=\"maze_moveForward\"/></statement><statement name=\"ELSE\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathLeft</field><statement name=\"DO\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field></block></statement><statement name=\"ELSE\"><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field></block></statement></block></statement></block></statement></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:30:21.309Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 9,
+      "modelName": "workspace",
+      "modelFile": "models/010_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 34001,
+      "iterationMs": 34001,
+      "wallIterationMs": 34327,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:29:46.982Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_moveForward\"/></statement></block></next></block></next></block></next></block></next></block></next></block></next></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:32:26.373Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 10,
+      "modelName": "workspace",
+      "modelFile": "models/011_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 113504,
+      "iterationMs": 113504,
+      "wallIterationMs": 113932,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:30:32.441Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field><next><block type=\"maze_moveForward\"><next><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathLeft</field><statement name=\"DO\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field></block></statement><statement name=\"ELSE\"><block type=\"maze_moveForward\"/></statement></block></statement></block></next></block></next></block></next></block></next></block></next></block></next></block></next></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:32:58.245Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 10,
+      "modelName": "workspace",
+      "modelFile": "models/012_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 145504,
+      "iterationMs": 32000,
+      "wallIterationMs": 31872,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:30:32.441Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field><next><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_ifElse\"><field name=\"DIR\">isPathLeft</field><statement name=\"DO\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field></block></statement><statement name=\"ELSE\"><block type=\"maze_moveForward\"/></statement></block></statement></block></next></block></next></block></next></block></next></block></next></block></next></block></xml>"
+    },
+    {
+      "timestamp": "2026-10-19T10:33:45.886Z",
+      "type": "program_run",
+      "variant": "momot",
+      "level": 10,
+      "modelName": "workspace",
+      "modelFile": "models/013_workspace.xml",
+      "modelPath": "",
+      "objectiveLine": "",
+      "levelElapsedMs": 193004,
+      "iterationMs": 47500,
+      "wallIterationMs": 47641,
+      "generation": null,
+      "searchId": "",
+      "levelArrivedAt": "2026-10-19T10:30:32.441Z",
+      "xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field><next><block type=\"maze_moveForward\"><next><block type=\"maze_moveForward\"><next><block type=\"maze_turn\"><field name=\"DIR\">turnRight</field><next><block type=\"maze_forever\"><statement name=\"DO\"><block type=\"maze_if\"><field name=\"DIR\">isPathLeft</field><statement name=\"DO\"><block type=\"maze_turn\"><field name=\"DIR\">turnLeft</field></block></statement><next><block type=\"maze_moveForward\"/></next></block></statement></block></next></block></next></block></next></block></next></block></next></block></next></block></xml>"
+    }
+  ]
+}

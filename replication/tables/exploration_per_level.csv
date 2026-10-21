@@ -1,0 +1,7 @@
+level,n_participants,participants_searched,clem_searches,participants_loaded,n_loads,n_loaded_models,n_goal,n_non_dominated,n_run_after_load,n_built_before
+5,5,0,0,0,0,0,0,0,0,0
+6,5,1,1,1,3,1,1,1,1,0
+7,5,1,1,0,0,0,0,0,0,0
+8,5,1,2,0,0,0,0,0,0,0
+9,5,1,2,1,1,1,1,1,0,1
+10,5,2,5,2,2,2,1,0,0,0

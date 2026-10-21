@@ -1,79 +1,22 @@
 <?xml version="1.0" encoding="ASCII"?>
-<blocky:Game xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:blocky="http://www.example.org/blocky">
-  <levels title="Maze Level 9" id="9" maxBlocks="7" allowLoops="true" allowConditionals="true" allowIfElse="true">
-    <map width="8" height="8">
-      <cells type="WALL" bottom="//@levels.0/@map/@cells.8" right="//@levels.0/@map/@cells.1"/>
-      <cells x="1" type="WALL" bottom="//@levels.0/@map/@cells.9" left="//@levels.0/@map/@cells.0" right="//@levels.0/@map/@cells.2"/>
-      <cells x="2" type="WALL" bottom="//@levels.0/@map/@cells.10" left="//@levels.0/@map/@cells.1" right="//@levels.0/@map/@cells.3"/>
-      <cells x="3" type="WALL" bottom="//@levels.0/@map/@cells.11" left="//@levels.0/@map/@cells.2" right="//@levels.0/@map/@cells.4"/>
-      <cells x="4" type="WALL" bottom="//@levels.0/@map/@cells.12" left="//@levels.0/@map/@cells.3" right="//@levels.0/@map/@cells.5"/>
-      <cells x="5" type="WALL" bottom="//@levels.0/@map/@cells.13" left="//@levels.0/@map/@cells.4" right="//@levels.0/@map/@cells.6"/>
-      <cells x="6" type="WALL" bottom="//@levels.0/@map/@cells.14" left="//@levels.0/@map/@cells.5" right="//@levels.0/@map/@cells.7"/>
-      <cells x="7" type="WALL" bottom="//@levels.0/@map/@cells.15" left="//@levels.0/@map/@cells.6"/>
-      <cells y="1" type="WALL" top="//@levels.0/@map/@cells.0" bottom="//@levels.0/@map/@cells.16" right="//@levels.0/@map/@cells.9"/>
-      <cells x="1" y="1" top="//@levels.0/@map/@cells.1" bottom="//@levels.0/@map/@cells.17" left="//@levels.0/@map/@cells.8" right="//@levels.0/@map/@cells.10" distanceToGoal="5"/>
-      <cells x="2" y="1" top="//@levels.0/@map/@cells.2" bottom="//@levels.0/@map/@cells.18" left="//@levels.0/@map/@cells.9" right="//@levels.0/@map/@cells.11" distanceToGoal="4"/>
-      <cells x="3" y="1" top="//@levels.0/@map/@cells.3" bottom="//@levels.0/@map/@cells.19" left="//@levels.0/@map/@cells.10" right="//@levels.0/@map/@cells.12" distanceToGoal="5"/>
-      <cells x="4" y="1" top="//@levels.0/@map/@cells.4" bottom="//@levels.0/@map/@cells.20" left="//@levels.0/@map/@cells.11" right="//@levels.0/@map/@cells.13" distanceToGoal="6"/>
-      <cells x="5" y="1" top="//@levels.0/@map/@cells.5" bottom="//@levels.0/@map/@cells.21" left="//@levels.0/@map/@cells.12" right="//@levels.0/@map/@cells.14" distanceToGoal="7"/>
-      <cells x="6" y="1" type="WALL" top="//@levels.0/@map/@cells.6" bottom="//@levels.0/@map/@cells.22" left="//@levels.0/@map/@cells.13" right="//@levels.0/@map/@cells.15"/>
-      <cells x="7" y="1" type="WALL" top="//@levels.0/@map/@cells.7" bottom="//@levels.0/@map/@cells.23" left="//@levels.0/@map/@cells.14"/>
-      <cells y="2" type="WALL" top="//@levels.0/@map/@cells.8" bottom="//@levels.0/@map/@cells.24" right="//@levels.0/@map/@cells.17"/>
-      <cells x="1" y="2" type="WALL" top="//@levels.0/@map/@cells.9" bottom="//@levels.0/@map/@cells.25" left="//@levels.0/@map/@cells.16" right="//@levels.0/@map/@cells.18"/>
-      <cells x="2" y="2" top="//@levels.0/@map/@cells.10" bottom="//@levels.0/@map/@cells.26" left="//@levels.0/@map/@cells.17" right="//@levels.0/@map/@cells.19" distanceToGoal="3"/>
-      <cells x="3" y="2" type="WALL" top="//@levels.0/@map/@cells.11" bottom="//@levels.0/@map/@cells.27" left="//@levels.0/@map/@cells.18" right="//@levels.0/@map/@cells.20"/>
-      <cells x="4" y="2" type="WALL" top="//@levels.0/@map/@cells.12" bottom="//@levels.0/@map/@cells.28" left="//@levels.0/@map/@cells.19" right="//@levels.0/@map/@cells.21"/>
-      <cells x="5" y="2" type="WALL" top="//@levels.0/@map/@cells.13" bottom="//@levels.0/@map/@cells.29" left="//@levels.0/@map/@cells.20" right="//@levels.0/@map/@cells.22"/>
-      <cells x="6" y="2" type="WALL" top="//@levels.0/@map/@cells.14" bottom="//@levels.0/@map/@cells.30" left="//@levels.0/@map/@cells.21" right="//@levels.0/@map/@cells.23"/>
-      <cells x="7" y="2" type="WALL" top="//@levels.0/@map/@cells.15" bottom="//@levels.0/@map/@cells.31" left="//@levels.0/@map/@cells.22"/>
-      <cells y="3" type="GOAL" top="//@levels.0/@map/@cells.16" bottom="//@levels.0/@map/@cells.32" right="//@levels.0/@map/@cells.25" distanceToGoal="0"/>
-      <cells x="1" y="3" top="//@levels.0/@map/@cells.17" bottom="//@levels.0/@map/@cells.33" left="//@levels.0/@map/@cells.24" right="//@levels.0/@map/@cells.26" distanceToGoal="1"/>
-      <cells x="2" y="3" top="//@levels.0/@map/@cells.18" bottom="//@levels.0/@map/@cells.34" left="//@levels.0/@map/@cells.25" right="//@levels.0/@map/@cells.27" distanceToGoal="2"/>
-      <cells x="3" y="3" top="//@levels.0/@map/@cells.19" bottom="//@levels.0/@map/@cells.35" left="//@levels.0/@map/@cells.26" right="//@levels.0/@map/@cells.28" distanceToGoal="3"/>
-      <cells x="4" y="3" top="//@levels.0/@map/@cells.20" bottom="//@levels.0/@map/@cells.36" left="//@levels.0/@map/@cells.27" right="//@levels.0/@map/@cells.29" distanceToGoal="4"/>
-      <cells x="5" y="3" top="//@levels.0/@map/@cells.21" bottom="//@levels.0/@map/@cells.37" left="//@levels.0/@map/@cells.28" right="//@levels.0/@map/@cells.30" distanceToGoal="5"/>
-      <cells x="6" y="3" top="//@levels.0/@map/@cells.22" bottom="//@levels.0/@map/@cells.38" left="//@levels.0/@map/@cells.29" right="//@levels.0/@map/@cells.31" distanceToGoal="6"/>
-      <cells x="7" y="3" type="WALL" top="//@levels.0/@map/@cells.23" bottom="//@levels.0/@map/@cells.39" left="//@levels.0/@map/@cells.30"/>
-      <cells y="4" type="WALL" top="//@levels.0/@map/@cells.24" bottom="//@levels.0/@map/@cells.40" right="//@levels.0/@map/@cells.33"/>
-      <cells x="1" y="4" top="//@levels.0/@map/@cells.25" bottom="//@levels.0/@map/@cells.41" left="//@levels.0/@map/@cells.32" right="//@levels.0/@map/@cells.34" distanceToGoal="2"/>
-      <cells x="2" y="4" type="WALL" top="//@levels.0/@map/@cells.26" bottom="//@levels.0/@map/@cells.42" left="//@levels.0/@map/@cells.33" right="//@levels.0/@map/@cells.35"/>
-      <cells x="3" y="4" top="//@levels.0/@map/@cells.27" bottom="//@levels.0/@map/@cells.43" left="//@levels.0/@map/@cells.34" right="//@levels.0/@map/@cells.36" distanceToGoal="4"/>
-      <cells x="4" y="4" type="WALL" top="//@levels.0/@map/@cells.28" bottom="//@levels.0/@map/@cells.44" left="//@levels.0/@map/@cells.35" right="//@levels.0/@map/@cells.37"/>
-      <cells x="5" y="4" top="//@levels.0/@map/@cells.29" bottom="//@levels.0/@map/@cells.45" left="//@levels.0/@map/@cells.36" right="//@levels.0/@map/@cells.38" distanceToGoal="6"/>
-      <cells x="6" y="4" top="//@levels.0/@map/@cells.30" bottom="//@levels.0/@map/@cells.46" left="//@levels.0/@map/@cells.37" right="//@levels.0/@map/@cells.39" distanceToGoal="7"/>
-      <cells x="7" y="4" type="WALL" top="//@levels.0/@map/@cells.31" bottom="//@levels.0/@map/@cells.47" left="//@levels.0/@map/@cells.38"/>
-      <cells y="5" top="//@levels.0/@map/@cells.32" bottom="//@levels.0/@map/@cells.48" right="//@levels.0/@map/@cells.41" distanceToGoal="4"/>
-      <cells x="1" y="5" top="//@levels.0/@map/@cells.33" bottom="//@levels.0/@map/@cells.49" left="//@levels.0/@map/@cells.40" right="//@levels.0/@map/@cells.42" distanceToGoal="3"/>
-      <cells x="2" y="5" top="//@levels.0/@map/@cells.34" bottom="//@levels.0/@map/@cells.50" left="//@levels.0/@map/@cells.41" right="//@levels.0/@map/@cells.43" distanceToGoal="4"/>
-      <cells x="3" y="5" top="//@levels.0/@map/@cells.35" bottom="//@levels.0/@map/@cells.51" left="//@levels.0/@map/@cells.42" right="//@levels.0/@map/@cells.44" distanceToGoal="5"/>
-      <cells x="4" y="5" top="//@levels.0/@map/@cells.36" bottom="//@levels.0/@map/@cells.52" left="//@levels.0/@map/@cells.43" right="//@levels.0/@map/@cells.45" distanceToGoal="6"/>
-      <cells x="5" y="5" type="WALL" top="//@levels.0/@map/@cells.37" bottom="//@levels.0/@map/@cells.53" left="//@levels.0/@map/@cells.44" right="//@levels.0/@map/@cells.46"/>
-      <cells x="6" y="5" top="//@levels.0/@map/@cells.38" bottom="//@levels.0/@map/@cells.54" left="//@levels.0/@map/@cells.45" right="//@levels.0/@map/@cells.47" distanceToGoal="8"/>
-      <cells x="7" y="5" type="WALL" top="//@levels.0/@map/@cells.39" bottom="//@levels.0/@map/@cells.55" left="//@levels.0/@map/@cells.46"/>
-      <cells y="6" type="WALL" top="//@levels.0/@map/@cells.40" bottom="//@levels.0/@map/@cells.56" right="//@levels.0/@map/@cells.49"/>
-      <cells x="1" y="6" top="//@levels.0/@map/@cells.41" bottom="//@levels.0/@map/@cells.57" left="//@levels.0/@map/@cells.48" right="//@levels.0/@map/@cells.50" distanceToGoal="4"/>
-      <cells x="2" y="6" type="WALL" top="//@levels.0/@map/@cells.42" bottom="//@levels.0/@map/@cells.58" left="//@levels.0/@map/@cells.49" right="//@levels.0/@map/@cells.51"/>
-      <cells x="3" y="6" top="//@levels.0/@map/@cells.43" bottom="//@levels.0/@map/@cells.59" left="//@levels.0/@map/@cells.50" right="//@levels.0/@map/@cells.52" distanceToGoal="6"/>
-      <cells x="4" y="6" type="WALL" top="//@levels.0/@map/@cells.44" bottom="//@levels.0/@map/@cells.60" left="//@levels.0/@map/@cells.51" right="//@levels.0/@map/@cells.53"/>
-      <cells x="5" y="6" type="START" top="//@levels.0/@map/@cells.45" bottom="//@levels.0/@map/@cells.61" left="//@levels.0/@map/@cells.52" right="//@levels.0/@map/@cells.54" distanceToGoal="10"/>
-      <cells x="6" y="6" top="//@levels.0/@map/@cells.46" bottom="//@levels.0/@map/@cells.62" left="//@levels.0/@map/@cells.53" right="//@levels.0/@map/@cells.55" distanceToGoal="9"/>
-      <cells x="7" y="6" type="WALL" top="//@levels.0/@map/@cells.47" bottom="//@levels.0/@map/@cells.63" left="//@levels.0/@map/@cells.54"/>
-      <cells y="7" type="WALL" top="//@levels.0/@map/@cells.48" right="//@levels.0/@map/@cells.57"/>
-      <cells x="1" y="7" type="WALL" top="//@levels.0/@map/@cells.49" left="//@levels.0/@map/@cells.56" right="//@levels.0/@map/@cells.58"/>
-      <cells x="2" y="7" type="WALL" top="//@levels.0/@map/@cells.50" left="//@levels.0/@map/@cells.57" right="//@levels.0/@map/@cells.59"/>
-      <cells x="3" y="7" type="WALL" top="//@levels.0/@map/@cells.51" left="//@levels.0/@map/@cells.58" right="//@levels.0/@map/@cells.60"/>
-      <cells x="4" y="7" type="WALL" top="//@levels.0/@map/@cells.52" left="//@levels.0/@map/@cells.59" right="//@levels.0/@map/@cells.61"/>
-      <cells x="5" y="7" type="WALL" top="//@levels.0/@map/@cells.53" left="//@levels.0/@map/@cells.60" right="//@levels.0/@map/@cells.62"/>
-      <cells x="6" y="7" type="WALL" top="//@levels.0/@map/@cells.54" left="//@levels.0/@map/@cells.61" right="//@levels.0/@map/@cells.63"/>
-      <cells x="7" y="7" type="WALL" top="//@levels.0/@map/@cells.55" left="//@levels.0/@map/@cells.62"/>
+<blocky:Game xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:blocky="http://www.example.org/blocky">
+  <levels>
+    <map width="3" height="3">
+      <cells type="START" bottom="//@levels.0/@map/@cells.3" right="//@levels.0/@map/@cells.1"/>
+      <cells x="1" type="DMG" bottom="//@levels.0/@map/@cells.4" left="//@levels.0/@map/@cells.0" right="//@levels.0/@map/@cells.2"/>
+      <cells x="2" type="WALL" bottom="//@levels.0/@map/@cells.5" left="//@levels.0/@map/@cells.1"/>
+      <cells y="1" type="WALL" top="//@levels.0/@map/@cells.0" bottom="//@levels.0/@map/@cells.6" right="//@levels.0/@map/@cells.4"/>
+      <cells x="1" y="1" top="//@levels.0/@map/@cells.1" bottom="//@levels.0/@map/@cells.7" left="//@levels.0/@map/@cells.3" right="//@levels.0/@map/@cells.5"/>
+      <cells x="2" y="1" type="WALL" top="//@levels.0/@map/@cells.2" bottom="//@levels.0/@map/@cells.8" left="//@levels.0/@map/@cells.4"/>
+      <cells y="2" type="WALL" top="//@levels.0/@map/@cells.3" right="//@levels.0/@map/@cells.7"/>
+      <cells x="1" y="2" top="//@levels.0/@map/@cells.4" left="//@levels.0/@map/@cells.6" right="//@levels.0/@map/@cells.8"/>
+      <cells x="2" y="2" type="GOAL" top="//@levels.0/@map/@cells.5" left="//@levels.0/@map/@cells.7"/>
     </map>
     <solution>
-      <firstContainer>
-        <statement xsi:type="blocky:AtomicStatement" kind="MOVE_FORWARD"/>
-      </firstContainer>
+      <firstContainer/>
     </solution>
     <traces>
-      <states position="//@levels.0/@map/@cells.24" orientation="EAST"/>
+      <states position="//@levels.0/@map/@cells.1" orientation="EAST"/>
     </traces>
   </levels>
 </blocky:Game>

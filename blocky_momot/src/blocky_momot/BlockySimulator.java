@@ -16,16 +16,12 @@ import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 
 import blocky.AtomicStatement;
 import blocky.AtomicStatementKind;
-import blocky.BlockyFactory;
 import blocky.BlockyPackage;
 import blocky.Body;
 import blocky.Cell;
 import blocky.CellType;
-import blocky.ConditionKind;
 import blocky.Container;
 import blocky.Direction;
-import blocky.ExecutionTrace;
-import blocky.GameState;
 import blocky.GameStatus;
 import blocky.GridMap;
 import blocky.IfStmt;
@@ -35,9 +31,8 @@ import blocky.SensorDirection;
 import blocky.Statement;
 
 /**
- * Headless simulator for Blocky maze programs. Executes a Level's solution
- * on its map and returns the final game status (WON, CRASHED, or RUNNING).
- * Used by MOMoT fitness to evaluate whether a transformed model reaches the goal.
+ * Headless simulator for Blocky maze programs.
+ * Adapts {@link SimulationEngine} traces to MOMoT fitness objectives.
  */
 public final class BlockySimulator {
 
@@ -59,106 +54,7 @@ public final class BlockySimulator {
      * illegal program as "WON" even though it can't be executed in-game.
      */
     public static boolean violatesLevelConstraints(Level level, Body solution) {
-        if (level == null || solution == null) {
-            return false;
-        }
-
-        int maxBlocks = level.getMaxBlocks();
-        int blocks = countStatements(solution);
-        if (maxBlocks > 0 && blocks > maxBlocks) {
-            System.out.println("Diag: Violation - too many blocks: " + blocks + " > " + maxBlocks);
-            return true;
-        }
-
-        if (!level.isAllowLoops() && containsLoop(solution)) {
-            System.out.println("Diag: Violation - loops not allowed");
-            return true;
-        }
-
-        if (!level.isAllowConditionals() && containsIf(solution)) {
-            System.out.println("Diag: Violation - conditionals not allowed");
-            return true;
-        }
-
-        return false;
-    }
-
-    private static int countStatements(Body body) {
-        if (body == null) {
-            return 0;
-        }
-        return countStatements(body.getFirstContainer());
-    }
-
-    private static int countStatements(Container c) {
-        int count = 0;
-        Container cur = c;
-        while (cur != null) {
-            Statement s = cur.getStatement();
-            if (s != null) {
-                count++;
-                if (s instanceof Loop) {
-                    count += countStatements(((Loop) s).getBody());
-                } else if (s instanceof IfStmt) {
-                    IfStmt i = (IfStmt) s;
-                    count += countStatements(i.getThenBody());
-                    count += countStatements(i.getElseBody());
-                }
-            }
-            cur = cur.getNext();
-        }
-        return count;
-    }
-
-    private static boolean containsLoop(Body body) {
-        if (body == null) {
-            return false;
-        }
-        return containsLoop(body.getFirstContainer());
-    }
-
-    private static boolean containsLoop(Container c) {
-        Container cur = c;
-        while (cur != null) {
-            Statement s = cur.getStatement();
-            if (s instanceof Loop) {
-                return true;
-            }
-            if (s instanceof IfStmt) {
-                IfStmt i = (IfStmt) s;
-                if (containsLoop(i.getThenBody()) || containsLoop(i.getElseBody())) {
-                    return true;
-                }
-            }
-            cur = cur.getNext();
-        }
-        return false;
-    }
-
-    private static boolean containsIf(Body body) {
-        if (body == null) {
-            return false;
-        }
-        return containsIf(body.getFirstContainer());
-    }
-
-    private static boolean containsIf(Container c) {
-        Container cur = c;
-        while (cur != null) {
-            Statement s = cur.getStatement();
-            if (s != null) {
-                if (s instanceof IfStmt) {
-                    return true;
-                }
-                if (s instanceof Loop) {
-                    if (containsIf(((Loop) s).getBody())) {
-                        return true;
-                    }
-                }
-            }
-            cur = cur.getNext();
-        }
-        return false;
+        return SimulationEngine.violatesLevelConstraints(level, solution);
     }
 
     /**
@@ -235,189 +131,149 @@ public final class BlockySimulator {
     }
 
     /**
-     * Executes the level's solution and returns the minimum 'distanceToGoal' value
-     * encountered on any visited cell. Uses the pre-annotated distance values.
-     *
-     * @param level the level to simulate
-     * @param penalty value to return if no goal is reachable or level is invalid
-     * @return minimum distance to goal encountered during simulation
+     * Minimum BFS distance-to-goal encountered along the solution path.
+     * Computed live from the execution trace.
+     * Returns {@code 0} when the path reaches the goal, and {@code penalty}
+     * when the level is invalid or no goal is reachable.
      */
     public static int closestToGoalOrPenalty(Level level, int penalty) {
-        if (level == null || level.getMap() == null) {
-            return penalty;
-        }
-        Body solution = level.getSolution();
-        if (solution == null) {
-            return penalty;
-        }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
-            return penalty;
-        }
-
-        GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return penalty;
-        }
-
-        Direction startDir = determineStartOrientation(level, startCell);
-        GameState state = BlockyFactory.eINSTANCE.createGameState();
-        state.setStep(0);
-        state.setPosition(startCell);
-        state.setOrientation(startDir);
-        state.setStatus(GameStatus.RUNNING);
-
-        final CellType winCellType = determineWinCellType(level);
-        ExecResult r = executeBodyLiteWithAnnotatedDistance(solution, state, level, winCellType);
-
-        if (r == null || r.minDistance == Integer.MAX_VALUE) {
-            return penalty;
-        }
-        return r.minDistance;
-    }
-
-    private static ExecResult executeBodyLiteWithAnnotatedDistance(
-            Body body,
-            GameState state,
-            Level level,
-            CellType winCellType) {
-        if (body == null) return new ExecResult(state, annotatedDistanceAt(state, Integer.MAX_VALUE));
-        return executeContainerChainLiteWithAnnotatedDistance(body.getFirstContainer(), state, level, winCellType, Integer.MAX_VALUE);
-    }
-
-    private static ExecResult executeContainerChainLiteWithAnnotatedDistance(
-            Container first,
-            GameState state,
-            Level level,
-            CellType winCellType,
-            int currentMin) {
-        Container current = first;
-        GameState last = state;
-        int min = annotatedDistanceAt(last, currentMin);
-        while (current != null && last.getStatus() == GameStatus.RUNNING && min != 0) {
-            Statement stmt = current.getStatement();
-            ExecResult r = executeSingleLiteWithAnnotatedDistance(stmt, last, level, winCellType, min);
-            last = r.last;
-            min = r.minDistance;
-            current = current.getNext();
-        }
-        return new ExecResult(last, min);
-    }
-
-    private static ExecResult executeSingleLiteWithAnnotatedDistance(
-            Statement stmt,
-            GameState prev,
-            Level level,
-            CellType winCellType,
-            int currentMin) {
-        GameState next = executeSingleLite(stmt, prev, level, winCellType);
-        int min = annotatedDistanceAt(next, currentMin);
-        if (min == 0 || next.getStatus() != GameStatus.RUNNING || stmt == null) {
-            return new ExecResult(next, min);
-        }
-
-        if (stmt instanceof Loop) {
-            Loop r = (Loop) stmt;
-            GameState loop = next;
-            int loopMin = min;
-            GridMap map = level.getMap();
-            int maxSteps = map.getWidth() * map.getHeight() * 2;
-            while (loop.getStatus() == GameStatus.RUNNING && loop.getPosition().getType() != winCellType && loopMin != 0) {
-                if (loop.getStep() > maxSteps) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-                int previousStep = loop.getStep();
-                ExecResult inner = executeBodyLiteWithAnnotatedDistance(r.getBody(), loop, level, winCellType);
-                loop = inner.last;
-                loopMin = inner.minDistance;
-                if (loop.getStep() == previousStep) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-            }
-            return new ExecResult(loop, loopMin);
-        }
-
-        if (stmt instanceof IfStmt) {
-            IfStmt i = (IfStmt) stmt;
-            boolean cond = checkCondition(next, i.getCondition());
-            Body branch = cond ? i.getThenBody() : i.getElseBody();
-            if (branch != null) {
-                ExecResult inner = executeBodyLiteWithAnnotatedDistance(branch, next, level, winCellType);
-                return new ExecResult(inner.last, inner.minDistance);
-            }
-        }
-
-        return new ExecResult(next, min);
-    }
-
-    private static int annotatedDistanceAt(GameState state, int currentMin) {
-        if (state == null) return currentMin;
-        Cell pos = state.getPosition();
-        if (pos == null) return currentMin;
-        int d = pos.getDistanceToGoal();
-        if (d < 0) return currentMin; // -1 means unreachable or unannotated
-        return Math.min(currentMin, d);
+        return distanceToGoalOrPenalty(level, penalty);
     }
 
     /**
      * Run the level's solution on the level's map and return the status of the
      * last game state (WON if goal reached, CRASHED on wall or loop limit, RUNNING if incomplete).
-     *
-     * @param level the level with map and solution (may be null solution)
-     * @return final GameStatus after execution
      */
     public static GameStatus run(Level level) {
         if (level == null || level.getMap() == null) {
             return GameStatus.CRASHED;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
+        if (level.getSolution() == null) {
             return GameStatus.RUNNING; // no program: never wins
         }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return GameStatus.CRASHED;
         }
+        GameRun g = executeLikeGame(level, null);
+        if (g == null || g.crashed) {
+            return GameStatus.CRASHED;
+        }
+        return g.position.getType() == determineWinCellType(level) ? GameStatus.WON : GameStatus.RUNNING;
+    }
 
+    /** Outcome of one run with the game's semantics (see {@link #executeLikeGame}). */
+    private static final class GameRun {
+        Cell position;
+        Direction orientation;
+        int actions;
+        boolean crashed;
+        int minDistance = Integer.MAX_VALUE;
+    }
+
+    /**
+     * Executes the program exactly like the game's Blockly interpreter does:
+     * <ul>
+     * <li>the whole program runs; reaching the goal does not stop it, and the goal is judged by the final
+     * position (statements after the arrival are executed and counted, and may leave the goal again);</li>
+     * <li>an action is a move (including a failing one), a turn, or a path check of an if block;
+     * loop blocks themselves are not actions;</li>
+     * <li>a loop repeats while Pegman is not on the goal (maze_forever); a loop that makes no progress or runs
+     * longer than the step budget counts as a crash (the game's tick limit).</li>
+     * </ul>
+     * This is deliberately separate from {@link SimulationEngine}, which stops at the first arrival and counts
+     * every statement (the debugger trace).
+     *
+     * @param distanceField if not null, the minimum distance over all visited cells is tracked
+     * @return null if the level has no map or no start cell
+     */
+    private static GameRun executeLikeGame(Level level, Map<Cell, Integer> distanceField) {
+        if (level == null || level.getMap() == null) {
+            return null;
+        }
         GridMap map = level.getMap();
-        Cell startCell = null;
+        Cell start = null;
         for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
+            if (c != null && c.getType() == CellType.START) {
+                start = c;
                 break;
             }
         }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
+        if (start == null && !map.getCells().isEmpty()) {
+            start = map.getCells().get(0);
         }
-        if (startCell == null) {
-            return GameStatus.CRASHED;
+        if (start == null) {
+            return null;
         }
+        GameRun g = new GameRun();
+        g.position = start;
+        g.orientation = determineStartOrientation(level, start);
+        trackDistance(g, distanceField);
+        executeBodyLikeGame(level.getSolution(), g, determineWinCellType(level),
+                SimulationEngine.computeLoopLimit(map), distanceField);
+        return g;
+    }
 
-        Direction startDir = determineStartOrientation(level, startCell);
-        GameState initialState = BlockyFactory.eINSTANCE.createGameState();
-        initialState.setStep(0);
-        initialState.setPosition(startCell);
-        initialState.setOrientation(startDir);
-        initialState.setStatus(GameStatus.RUNNING);
+    private static void trackDistance(GameRun g, Map<Cell, Integer> distanceField) {
+        if (distanceField == null) return;
+        Integer d = distanceField.get(g.position);
+        if (d != null) g.minDistance = Math.min(g.minDistance, d);
+    }
 
-        final CellType winCellType = determineWinCellType(level);
+    private static void executeBodyLikeGame(Body body, GameRun g, CellType win, int maxActions,
+            Map<Cell, Integer> distanceField) {
+        if (body == null) return;
+        for (Container c = body.getFirstContainer(); c != null && !g.crashed; c = c.getNext()) {
+            Statement stmt = c.getStatement();
+            if (stmt instanceof AtomicStatement) {
+                applyAtomic((AtomicStatement) stmt, g);
+                trackDistance(g, distanceField);
+            } else if (stmt instanceof Loop) {
+                Body loopBody = ((Loop) stmt).getBody();
+                while (!g.crashed && g.position.getType() != win) {
+                    if (g.actions > maxActions) {
+                        g.crashed = true;
+                        break;
+                    }
+                    int before = g.actions;
+                    executeBodyLikeGame(loopBody, g, win, maxActions, distanceField);
+                    if (g.actions == before && !g.crashed) {
+                        g.crashed = true; // no progress: the game would run into its tick limit
+                    }
+                }
+            } else if (stmt instanceof IfStmt) {
+                IfStmt i = (IfStmt) stmt;
+                g.actions++; // the path check is logged as an action by the game
+                SensorDirection sensor = SimulationEngine.conditionKindToSensor(i.getCondition());
+                Cell target = SimulationEngine.getAdjacent(g.position,
+                        SimulationEngine.getRelativeDir(g.orientation, sensor));
+                boolean cond = target != null && target.getType() != CellType.WALL;
+                executeBodyLikeGame(cond ? i.getThenBody() : i.getElseBody(), g, win, maxActions, distanceField);
+            }
+        }
+    }
 
-        ExecutionTrace trace = BlockyFactory.eINSTANCE.createExecutionTrace();
-        trace.getStates().add(initialState);
-
-        GameState last = executeBody(solution, initialState, trace, level, winCellType);
-        return last != null ? last.getStatus() : GameStatus.CRASHED;
+    /** One move or turn; a missing kind behaves as TURN_LEFT (same default as SimulationEngine). */
+    private static void applyAtomic(AtomicStatement a, GameRun g) {
+        AtomicStatementKind kind = a.getKind() != null ? a.getKind() : AtomicStatementKind.TURN_LEFT;
+        g.actions++;
+        switch (kind) {
+        case MOVE_FORWARD: {
+            Cell target = SimulationEngine.getAdjacent(g.position, g.orientation);
+            if (target == null || target.getType() == CellType.WALL) {
+                g.crashed = true;
+            } else {
+                g.position = target;
+            }
+            break;
+        }
+        case TURN_RIGHT:
+            g.orientation = SimulationEngine.getRelativeDir(g.orientation, SensorDirection.RIGHT);
+            break;
+        case TURN_LEFT:
+        default:
+            g.orientation = SimulationEngine.getRelativeDir(g.orientation, SensorDirection.LEFT);
+            break;
+        }
     }
 
     /**
@@ -433,42 +289,14 @@ public final class BlockySimulator {
      * during the simulation (whether won, crashed, or terminated).
      */
     public static int simulationSteps(Level level) {
-        if (level == null || level.getMap() == null) {
+        if (level == null || level.getMap() == null || level.getSolution() == null) {
             return 0;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
-            return 0;
-        }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return 100000;
         }
-
-        GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return 0;
-        }
-
-        Direction startDir = determineStartOrientation(level, startCell);
-        GameState state = BlockyFactory.eINSTANCE.createGameState();
-        state.setStep(0);
-        state.setPosition(startCell);
-        state.setOrientation(startDir);
-        state.setStatus(GameStatus.RUNNING);
-
-        final CellType winCellType = determineWinCellType(level);
-        GameState last = executeBodyLite(solution, state, level, winCellType);
-        return last != null ? last.getStep() : 0;
+        GameRun g = executeLikeGame(level, null);
+        return g != null ? g.actions : 0;
     }
 
     /**
@@ -476,57 +304,20 @@ public final class BlockySimulator {
      * otherwise returns {@code penalty}.
      */
     public static int stepsToGoalOrPenalty(Level level, int penalty) {
-        if (level == null || level.getMap() == null) {
+        if (level == null || level.getMap() == null || level.getSolution() == null) {
             return penalty;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return penalty;
         }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
-            return penalty;
-        }
-
-        GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return penalty;
-        }
-
-        Direction startDir = determineStartOrientation(level, startCell);
-        GameState state = BlockyFactory.eINSTANCE.createGameState();
-        state.setStep(0);
-        state.setPosition(startCell);
-        state.setOrientation(startDir);
-        state.setStatus(GameStatus.RUNNING);
-
-        final CellType winCellType = determineWinCellType(level);
-        GameState last = executeBodyLite(solution, state, level, winCellType);
-        return (last != null && last.getStatus() == GameStatus.WON) ? last.getStep() : penalty;
+        GameRun g = executeLikeGame(level, null);
+        boolean won = g != null && !g.crashed && g.position.getType() == determineWinCellType(level);
+        return won ? g.actions : penalty;
     }
 
     /**
      * Executes the level's solution and returns the minimum BFS distance-to-goal encountered along
      * Pegman's path.
-     *
-     * We first compute a distance field by doing a multi-source BFS from all goal cells:
-     * - If the map contains any {@code DMG} cell(s), DMG is treated as the goal.
-     * - Otherwise {@code GOAL} is treated as the goal.
-     *
-     * While executing the program, we track the minimum distance value of any visited cell.
-     * If Pegman reaches the goal, this value becomes 0.
-     *
-     * If the level is invalid, no goal cells exist, or the start cell is not connected to any goal,
-     * returns {@code penalty}.
      */
     public static int distanceToGoalOrPenalty(Level level) {
         return distanceToGoalOrPenalty(level, 100000);
@@ -536,56 +327,31 @@ public final class BlockySimulator {
      * Same as {@link #distanceToGoalOrPenalty(Level)} but with a custom penalty value.
      */
     public static int distanceToGoalOrPenalty(Level level, int penalty) {
-        if (level == null || level.getMap() == null) {
+        if (level == null || level.getMap() == null || level.getSolution() == null) {
             return penalty;
         }
-        Body solution = level.getSolution();
-        if (solution == null) {
-            return penalty;
-        }
-        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, solution)) {
+        if (ENFORCE_CONSTRAINTS && violatesLevelConstraints(level, level.getSolution())) {
             return penalty;
         }
 
         GridMap map = level.getMap();
-        Cell startCell = null;
-        for (Cell c : map.getCells()) {
-            if (c.getType() == CellType.START) {
-                startCell = c;
-                break;
-            }
-        }
-        if (startCell == null) {
-            startCell = map.getCells().isEmpty() ? null : map.getCells().get(0);
-        }
-        if (startCell == null) {
-            return penalty;
-        }
-
         final CellType winCellType = determineWinCellType(level);
         Map<Cell, Integer> distanceField = computeDistanceField(map, winCellType);
         if (distanceField.isEmpty()) {
             return penalty;
         }
 
-        Direction startDir = determineStartOrientation(level, startCell);
-        GameState state = BlockyFactory.eINSTANCE.createGameState();
-        state.setStep(0);
-        state.setPosition(startCell);
-        state.setOrientation(startDir);
-        state.setStatus(GameStatus.RUNNING);
-
-        ExecResult r = executeBodyLiteWithMinDistance(solution, state, level, winCellType, distanceField);
-        if (r == null) {
+        GameRun g = executeLikeGame(level, distanceField);
+        if (g == null || g.minDistance == Integer.MAX_VALUE) {
             return penalty;
         }
-        if (r.minDistance == Integer.MAX_VALUE) {
-            return penalty;
-        }
-        return r.minDistance;
+        // The game judges the goal by the final position: a run that passed over the goal but ended elsewhere
+        // has not reached it, so it is not reported as distance 0.
+        boolean onGoal = !g.crashed && g.position.getType() == winCellType;
+        return (g.minDistance == 0 && !onGoal) ? 1 : g.minDistance;
     }
 
-    private static Map<Cell, Integer> computeDistanceField(GridMap map, CellType goalType) {
+    public static Map<Cell, Integer> computeDistanceField(GridMap map, CellType goalType) {
         Map<Cell, Integer> dist = new IdentityHashMap<>();
         if (map == null || goalType == null) {
             return dist;
@@ -617,351 +383,11 @@ public final class BlockySimulator {
         return dist;
     }
 
-    private static final class ExecResult {
-        final GameState last;
-        final int minDistance;
-
-        ExecResult(GameState last, int minDistance) {
-            this.last = last;
-            this.minDistance = minDistance;
-        }
-    }
-
-    private static ExecResult executeBodyLiteWithMinDistance(
-            Body body,
-            GameState state,
-            Level level,
-            CellType winCellType,
-            Map<Cell, Integer> distanceField) {
-        if (body == null) return new ExecResult(state, minDistanceAt(state, distanceField, Integer.MAX_VALUE));
-        return executeContainerChainLiteWithMinDistance(body.getFirstContainer(), state, level, winCellType, distanceField, Integer.MAX_VALUE);
-    }
-
-    private static ExecResult executeContainerChainLiteWithMinDistance(
-            Container first,
-            GameState state,
-            Level level,
-            CellType winCellType,
-            Map<Cell, Integer> distanceField,
-            int currentMin) {
-        Container current = first;
-        GameState last = state;
-        int min = minDistanceAt(last, distanceField, currentMin);
-        while (current != null && last.getStatus() == GameStatus.RUNNING && min != 0) {
-            Statement stmt = current.getStatement();
-            ExecResult r = executeSingleLiteWithMinDistance(stmt, last, level, winCellType, distanceField, min);
-            last = r.last;
-            min = r.minDistance;
-            current = current.getNext();
-        }
-        return new ExecResult(last, min);
-    }
-
-    private static ExecResult executeSingleLiteWithMinDistance(
-            Statement stmt,
-            GameState prev,
-            Level level,
-            CellType winCellType,
-            Map<Cell, Integer> distanceField,
-            int currentMin) {
-        GameState next = executeSingleLite(stmt, prev, level, winCellType);
-        int min = minDistanceAt(next, distanceField, currentMin);
-        if (min == 0 || next.getStatus() != GameStatus.RUNNING || stmt == null) {
-            return new ExecResult(next, min);
-        }
-
-        if (stmt instanceof Loop) {
-            Loop r = (Loop) stmt;
-            GameState loop = next;
-            int loopMin = min;
-            GridMap map = level.getMap();
-            int maxSteps = map.getWidth() * map.getHeight() * 2;
-            while (loop.getStatus() == GameStatus.RUNNING && loop.getPosition().getType() != winCellType && loopMin != 0) {
-                if (loop.getStep() > maxSteps) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-                int previousStep = loop.getStep();
-                ExecResult inner = executeBodyLiteWithMinDistance(r.getBody(), loop, level, winCellType, distanceField);
-                loop = inner.last;
-                loopMin = inner.minDistance;
-                if (loop.getStep() == previousStep) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-            }
-            return new ExecResult(loop, loopMin);
-        }
-
-        if (stmt instanceof IfStmt) {
-            IfStmt i = (IfStmt) stmt;
-            boolean cond = checkCondition(next, i.getCondition());
-            Body branch = cond ? i.getThenBody() : i.getElseBody();
-            if (branch != null) {
-                ExecResult inner = executeBodyLiteWithMinDistance(branch, next, level, winCellType, distanceField);
-                return new ExecResult(inner.last, inner.minDistance);
-            }
-        }
-
-        return new ExecResult(next, min);
-    }
-
-    private static int minDistanceAt(GameState state, Map<Cell, Integer> distanceField, int currentMin) {
-        if (state == null) return currentMin;
-        Cell pos = state.getPosition();
-        Integer d = pos == null ? null : distanceField.get(pos);
-        if (d == null) return currentMin;
-        return Math.min(currentMin, d.intValue());
-    }
-
     public static CellType determineWinCellType(Level level) {
-        if (level == null || level.getMap() == null) return CellType.GOAL;
-        for (Cell c : level.getMap().getCells()) {
-            if (c != null && c.getType() == CellType.DMG) {
-                return CellType.DMG;
-            }
-        }
-        return CellType.GOAL;
+        return SimulationEngine.determineWinCellType(level);
     }
 
     public static Direction determineStartOrientation(Level level, Cell start) {
-        if (level != null && level.eIsSet(BlockyPackage.Literals.LEVEL__START_ORIENTATION)) {
-            return level.getStartOrientation();
-        }
-        if (start == null) return Direction.NORTH;
-        if (start.getTop() != null && start.getTop().getType() != CellType.WALL) return Direction.NORTH;
-        if (start.getRight() != null && start.getRight().getType() != CellType.WALL) return Direction.EAST;
-        if (start.getBottom() != null && start.getBottom().getType() != CellType.WALL) return Direction.SOUTH;
-        if (start.getLeft() != null && start.getLeft().getType() != CellType.WALL) return Direction.WEST;
-        return Direction.NORTH;
-    }
-
-    private static SensorDirection conditionKindToSensor(ConditionKind ck) {
-        // Align with generated EMF default: missing condition behaves as CHECK_FORWARD.
-        if (ck == null) ck = ConditionKind.CHECK_FORWARD;
-        if (ck == ConditionKind.CHECK_LEFT) return SensorDirection.LEFT;
-        if (ck == ConditionKind.CHECK_RIGHT) return SensorDirection.RIGHT;
-        return SensorDirection.AHEAD;
-    }
-
-    private static boolean checkCondition(GameState state, ConditionKind ck) {
-        return checkSensor(state, conditionKindToSensor(ck));
-    }
-
-    private static GameState executeBody(Body body, GameState state, ExecutionTrace trace, Level level, CellType winCellType) {
-        if (body == null) return state;
-        return executeContainerChain(body.getFirstContainer(), state, trace, level, winCellType);
-    }
-
-    private static GameState executeBodyLite(Body body, GameState state, Level level, CellType winCellType) {
-        if (body == null) return state;
-        return executeContainerChainLite(body.getFirstContainer(), state, level, winCellType);
-    }
-
-    private static GameState executeContainerChain(Container first, GameState state, ExecutionTrace trace, Level level, CellType winCellType) {
-        Container current = first;
-        GameState last = state;
-        while (current != null && last.getStatus() == GameStatus.RUNNING) {
-            Statement stmt = current.getStatement();
-            last = executeSingle(stmt, last, trace, level, winCellType);
-            current = current.getNext();
-        }
-        return last;
-    }
-
-    private static GameState executeContainerChainLite(Container first, GameState state, Level level, CellType winCellType) {
-        Container current = first;
-        GameState last = state;
-        while (current != null && last.getStatus() == GameStatus.RUNNING) {
-            Statement stmt = current.getStatement();
-            last = executeSingleLite(stmt, last, level, winCellType);
-            current = current.getNext();
-        }
-        return last;
-    }
-
-    private static GameState executeSingle(Statement stmt, GameState prev, ExecutionTrace trace, Level level, CellType winCellType) {
-        GameState next = BlockyFactory.eINSTANCE.createGameState();
-        next.setStep(prev.getStep() + 1);
-        next.setOrientation(prev.getOrientation());
-        next.setPosition(prev.getPosition());
-        next.setStatus(GameStatus.RUNNING);
-        next.setExecutingStatement(stmt);
-        next.setPrevious(prev);
-        trace.getStates().add(next);
-
-        if (stmt == null) {
-            return next; // empty container -> no-op
-        }
-
-        if (stmt instanceof AtomicStatement) {
-            AtomicStatement a = (AtomicStatement) stmt;
-            // Align with generated EMF default: missing kind behaves as TURN_LEFT.
-            AtomicStatementKind kind = a.getKind();
-            if (kind == null) {
-                kind = AtomicStatementKind.TURN_LEFT;
-            }
-            switch (kind) {
-            case MOVE_FORWARD: {
-                Cell target = getAdjacent(next.getPosition(), next.getOrientation());
-                if (target == null || target.getType() == CellType.WALL) {
-                    next.setStatus(GameStatus.CRASHED);
-                } else {
-                    next.setPosition(target);
-                    if (target.getType() == winCellType) {
-                        next.setStatus(GameStatus.WON);
-                    }
-                }
-                break;
-            }
-            case TURN_LEFT:
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.LEFT));
-                break;
-            case TURN_RIGHT:
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.RIGHT));
-                break;
-            default:
-                break;
-            }
-        } else if (stmt instanceof Loop) {
-            Loop r = (Loop) stmt;
-            GameState loop = next;
-            GridMap map = level.getMap();
-            int maxSteps = map.getWidth() * map.getHeight() * 2;
-            while (loop.getStatus() == GameStatus.RUNNING && loop.getPosition().getType() != winCellType) {
-                if (loop.getStep() > maxSteps) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-                int previousStep = loop.getStep();
-                loop = executeBody(r.getBody(), loop, trace, level, winCellType);
-                if (loop.getStep() == previousStep) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-            }
-            return loop;
-        } else if (stmt instanceof IfStmt) {
-            IfStmt i = (IfStmt) stmt;
-            boolean cond = checkCondition(next, i.getCondition());
-            if (cond) {
-                return executeBody(i.getThenBody(), next, trace, level, winCellType);
-            }
-            if (i.getElseBody() != null) {
-                return executeBody(i.getElseBody(), next, trace, level, winCellType);
-            }
-        }
-        return next;
-    }
-
-    private static GameState executeSingleLite(Statement stmt, GameState prev, Level level, CellType winCellType) {
-        GameState next = BlockyFactory.eINSTANCE.createGameState();
-        next.setStep(prev.getStep() + 1);
-        next.setOrientation(prev.getOrientation());
-        next.setPosition(prev.getPosition());
-        next.setStatus(GameStatus.RUNNING);
-        next.setExecutingStatement(stmt);
-        next.setPrevious(prev);
-
-        if (stmt == null) {
-            return next; // empty container -> no-op
-        }
-
-        if (stmt instanceof AtomicStatement) {
-            AtomicStatement a = (AtomicStatement) stmt;
-            // Align with generated EMF default: missing kind behaves as TURN_LEFT.
-            AtomicStatementKind kind = a.getKind();
-            if (kind == null) {
-                kind = AtomicStatementKind.TURN_LEFT;
-            }
-            switch (kind) {
-            case MOVE_FORWARD: {
-                Cell target = getAdjacent(next.getPosition(), next.getOrientation());
-                if (target == null || target.getType() == CellType.WALL) {
-                    next.setStatus(GameStatus.CRASHED);
-                } else {
-                    next.setPosition(target);
-                    if (target.getType() == winCellType) {
-                        next.setStatus(GameStatus.WON);
-                    }
-                }
-                break;
-            }
-            case TURN_LEFT:
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.LEFT));
-                break;
-            case TURN_RIGHT:
-                next.setOrientation(getRelativeDir(next.getOrientation(), SensorDirection.RIGHT));
-                break;
-            default:
-                break;
-            }
-        } else if (stmt instanceof Loop) {
-            Loop r = (Loop) stmt;
-            GameState loop = next;
-            GridMap map = level.getMap();
-            int maxSteps = map.getWidth() * map.getHeight() * 2;
-            while (loop.getStatus() == GameStatus.RUNNING && loop.getPosition().getType() != winCellType) {
-                if (loop.getStep() > maxSteps) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-                int previousStep = loop.getStep();
-                loop = executeBodyLite(r.getBody(), loop, level, winCellType);
-                if (loop.getStep() == previousStep) {
-                    loop.setStatus(GameStatus.CRASHED);
-                    break;
-                }
-            }
-            return loop;
-        } else if (stmt instanceof IfStmt) {
-            IfStmt i = (IfStmt) stmt;
-            boolean cond = checkCondition(next, i.getCondition());
-            if (cond) {
-                return executeBodyLite(i.getThenBody(), next, level, winCellType);
-            }
-            if (i.getElseBody() != null) {
-                return executeBodyLite(i.getElseBody(), next, level, winCellType);
-            }
-        }
-        return next;
-    }
-
-    private static boolean checkSensor(GameState state, SensorDirection sensor) {
-        Direction actual = getRelativeDir(state.getOrientation(), sensor);
-        Cell target = getAdjacent(state.getPosition(), actual);
-        return target != null && target.getType() != CellType.WALL;
-    }
-
-    private static Cell getAdjacent(Cell c, Direction d) {
-        switch (d) {
-            case NORTH: return c.getTop();
-            case SOUTH: return c.getBottom();
-            case EAST:  return c.getRight();
-            case WEST:  return c.getLeft();
-        }
-        return null;
-    }
-
-    private static Direction getRelativeDir(Direction curr, SensorDirection sensor) {
-        // Align with generated EMF default: missing orientation behaves as NORTH.
-        if (curr == null) curr = Direction.NORTH;
-        if (sensor == SensorDirection.AHEAD) return curr;
-        if (sensor == SensorDirection.LEFT) {
-            switch (curr) {
-                case NORTH: return Direction.WEST;
-                case WEST:  return Direction.SOUTH;
-                case SOUTH: return Direction.EAST;
-                case EAST:  return Direction.NORTH;
-            }
-        } else {
-            switch (curr) {
-                case NORTH: return Direction.EAST;
-                case EAST:  return Direction.SOUTH;
-                case SOUTH: return Direction.WEST;
-                case WEST:  return Direction.NORTH;
-            }
-        }
-        return curr;
+        return SimulationEngine.determineStartOrientation(level, start);
     }
 }

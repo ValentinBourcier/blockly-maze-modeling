@@ -1,5 +1,6 @@
 # Local setup doc (not for repo)
 GITHUB_ORG_SETUP.md
+DEPLOY.md
 
 # Eclipse (machine-specific; keep .classpath, .project, .launch in repo)
 .metadata/
@@ -24,3 +25,17 @@ Thumbs.db
 *.tmp
 *.bak
 *~
+level_sessions/
+blocky_game/level_sessions/
+blocky_game/blocky_game/level_sessions/
+momot_sessions/
+**/momot_sessions/
+node_modules/
+**/node_modules/
+
+# Python
+__pycache__/
+
+
+# local secrets (admin password for docker compose)
+.env
