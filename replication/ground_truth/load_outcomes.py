@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """What participants did with a candidate they loaded from CLEM's solution panel (prototype, see README.md).
 
-Usage: python tools/ground-truth-analysis/load_outcomes.py [folder ...]
-       (default: control_user_report treatment_user_report)
+Usage: python ground_truth/load_outcomes.py [folder ...]   (from the replication folder)
+       (default: data)
 
-Reads <folder>/models/*.csv (step 1 of README.md) and writes output/load_outcomes.csv as a timeline: one case per
+Reads <folder>/models/*.csv (from compute_models()) and writes replication/tables/load_outcomes.csv as a timeline: one case per
 load (candidate_exploration) on levels 5-10, the same candidate loaded several times in a row counting as one case,
 with rows (steps) in time order:
   own run   the last program run of the same participant and level before the load
@@ -22,7 +22,7 @@ one block costs 1, so does moving a block between the then and else branch of an
 The interpretation of the last step says what the case suggests, by fixed rules (intent is never logged):
   own model first    an own goal-reaching run before the load, and the candidate at most SEED_DISTANCE blocks from it
                      (the search edits the program in the workspace, so it started from that run); the candidate is
-                     compared with the own model and its label from output/<folder>_labelled.csv (step 2)
+                     compared with the own model and its label from <folder>/labels.csv (run.py label)
   exploration first  no own run on the level before the load; the candidate's label is given
   next run           unchanged, edited, dropped (closer to the own run), or probably not built from the candidate (as
                      many blocks from it as the next run has blocks)
@@ -36,8 +36,8 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-OUTPUT = HERE / "output"
-DEFAULT_FOLDERS = ["control_user_report", "treatment_user_report"]
+OUTPUT = HERE.parent / "tables"
+DEFAULT_FOLDERS = [HERE.parent / "data"]
 STUDY_LEVELS = {"5", "6", "7", "8", "9", "10"}  # levels 1-4 are exercise levels in the study
 
 SEED_DISTANCE = 2  # a candidate at most this many blocks from the own run shows the search started from it
@@ -289,8 +289,8 @@ def interpretation(load, prev, nxt, following, labels, searches):
 
 
 def read_labels(folder):
-    """(session, index) -> Pareto label from step 2 (output/<folder>_labelled.csv), empty if not labelled yet."""
-    path = OUTPUT / f"{folder}_labelled.csv"
+    """(session, index) -> Pareto label from run.py label (<folder>/labels.csv), empty if not labelled yet."""
+    path = Path(folder) / "labels.csv"
     if not path.exists():
         return {}
     with open(path, newline="", encoding="utf-8") as f:
@@ -299,7 +299,7 @@ def read_labels(folder):
 
 def searches_on_level(folder, session, level):
     """Searches the session report counts on the level; it logs no time for them."""
-    path = HERE / folder / f"session_{session}.json"
+    path = Path(folder) / f"session_{session}.json"
     if not path.exists():
         return 0
     with open(path, encoding="utf-8") as f:
@@ -310,7 +310,7 @@ def timeline(folders):
     rows = []
     for folder in folders:
         labels = read_labels(folder)
-        for path in sorted((HERE / folder / "models").glob("*.csv")):
+        for path in sorted((Path(folder) / "models").glob("*.csv")):
             with open(path, newline="", encoding="utf-8") as f:
                 models = sorted(csv.DictReader(f), key=lambda m: int(m["index"]))
             for k, load in enumerate(models):

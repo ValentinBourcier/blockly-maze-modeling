@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """Pareto analysis of participant models (see README.md in this folder).
 
-Usage: python tools/ground-truth-analysis/run.py <mode> [options]
+Usage: python ground_truth/run.py <mode> [options]   (from the replication folder)
 
-The models of the participants are read from <--sessions folder>/models/*.csv (levels 5-10), one CSV per session
-written by the R script reports/build_models.R, which replays the session reports with the game's own code
+The models of the participants are read from <--sessions folder>/models/*.csv (default: replication/data; levels 5-10),
+one CSV per session written by compute_models() of the replication package (replication/compute_models.R), which replays the session reports with the game's own code
 (blocky_game.ReportGoalChecker): per model the program text, the index of a loaded candidate it equals, goal reached,
 power = Actions, memory = Blocks.
 
   amin  per level: A_min, the fewest Actions any program can have (fewest moves plus turns from start to goal),
-        with the straight-line program along that route checked by BlockySimulator. Writes output/amin.csv.
+        with the straight-line program along that route checked by BlockySimulator. Writes tables/amin.csv.
   amin-front  per level: the fewest Blocks of a program with A_min Actions (a straight line, or a straight start and
         one loop), with an example checked by BlockySimulator, and checks it against the search tables. Writes
-        output/amin_front.csv, which label uses: a model with A_min Actions is decided whatever its block count.
+        tables/amin_front.csv, which label uses: a model with A_min Actions is decided whatever its block count.
   loop-search  per level: like search, but only programs of a straight start and one loop whose body has at most
         --max-body blocks, up to --max-blocks blocks, keeping pairs with at most --max-actions Actions. Reaches larger
         programs than search, but not all of them: its programs can show a model dominated, never optimal. Writes
-        output/level{N}_b{max-blocks}_body{max-body}_a{max-actions}.csv, which label uses.
+        tables/level{N}_b{max-blocks}_body{max-body}_a{max-actions}.csv, which label uses.
   search  per level: every (Blocks, Actions) pair reached by a goal-reaching program up to --max-blocks (skipping
         useless programs), with one example program, whether it is on the front, and whether BlockySimulator confirms
-        the example. Writes output/level{N}_b{max-blocks}.csv.
+        the example. Writes tables/level{N}_b{max-blocks}.csv.
   check-sim  checks 1, 2 and 4: generates every program the game can build up to --max-blocks, compares the count with
         the closed form, compares the fast simulator with BlockySimulator on every program, and checks that no
         goal-reaching program has fewer Actions than A_min.
@@ -28,8 +28,8 @@ power = Actions, memory = Blocks.
         blocks) is a generated program, and the search gives it the same Actions and Blocks as the replay.
   label  labels every goal-reaching model of --sessions: dominated if a table program, a loop-search program, the
         amin-front program or another participant's model beats it, optimal if the level's largest table covers its block count or it has
-        A_min Actions (with output/amin_front.csv), else not covered (prints the search
-        command that covers it; --extend runs it). Writes output/<sessions folder>_labelled.csv. Needs Java and Maven
+        A_min Actions (with tables/amin_front.csv), else not covered (prints the search
+        command that covers it; --extend runs it). Writes <sessions folder>/labels.csv. Needs Java and Maven
         only with --extend.
 
 Compiles the project first and runs with the freshly compiled classes first on the classpath, so the current
@@ -47,7 +47,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-OUTPUT = HERE / "output"
+TABLES = HERE / "tables"  # the ground truth: search tables and amin files
 CP_FILE = ROOT / "blocky_momot" / "target" / "ground-truth-classpath.txt"
 STUDY_LEVELS = [5, 6, 7, 8, 9, 10]  # levels 1-4 are exercise levels in the study
 
@@ -81,15 +81,15 @@ def classpath():
     return os.pathsep.join(classes + [CP_FILE.read_text(encoding="utf-8").strip()])
 
 
-def output_csv(sessions, kind):
-    return OUTPUT / f"{Path(sessions).resolve().name}_{kind}.csv"
+def labels_csv(sessions):
+    return Path(sessions) / "labels.csv"
 
 
 def read_models(sessions):
-    """The models of the study levels in <sessions>/models/*.csv, one CSV per session (written by reports/build_models.R)."""
+    """The models of the study levels in <sessions>/models/*.csv, one CSV per session (written by compute_models())."""
     files = sorted((Path(sessions) / "models").glob("*.csv"))
     if not files:
-        sys.exit(f"no models in {Path(sessions) / 'models'}; run reports/build_models.R on {sessions} first")
+        sys.exit(f"no models in {Path(sessions) / 'models'}; run compute_models() of replication/compute_models.R on {sessions} first")
     models = []
     for path in files:
         with open(path, newline="", encoding="utf-8") as f:
@@ -100,7 +100,7 @@ def read_models(sessions):
 def largest_tables():
     """Per level: (block limit, [(actions, blocks, example program)]) of its table with the highest block limit."""
     tables = {}
-    for path in OUTPUT.glob("level*_b*.csv"):
+    for path in TABLES.glob("level*_b*.csv"):
         m = TABLE_NAME.fullmatch(path.name)
         if m and int(m[2]) > tables.get(int(m[1]), (0,))[0]:
             tables[int(m[1])] = (int(m[2]), path)
@@ -114,7 +114,7 @@ def largest_tables():
 def loop_tables():
     """Per level: [(actions, blocks, example program)] of every loop-search table, all confirmed by BlockySimulator."""
     result = {}
-    for path in OUTPUT.glob("level*_b*_body*_a*.csv"):
+    for path in TABLES.glob("level*_b*_body*_a*.csv"):
         m = LOOP_TABLE_NAME.fullmatch(path.name)
         if not m:
             continue
@@ -127,8 +127,8 @@ def loop_tables():
 
 
 def amin_front():
-    """Per level: (A_min, fewest Blocks at A_min, example program) from output/amin_front.csv, or {} without it."""
-    path = OUTPUT / "amin_front.csv"
+    """Per level: (A_min, fewest Blocks at A_min, example program) from tables/amin_front.csv, or {} without it."""
+    path = TABLES / "amin_front.csv"
     if not path.exists():
         return {}
     with open(path, newline="", encoding="utf-8") as f:
@@ -139,7 +139,7 @@ def amin_front():
 
 
 def check_amin_front():
-    """The search tables must agree with output/amin_front.csv: where a table holds programs with min_blocks, its
+    """The search tables must agree with tables/amin_front.csv: where a table holds programs with min_blocks, its
     fewest Blocks at A_min is min_blocks; elsewhere it holds no program with A_min Actions. Returns whether all agree."""
     ok = True
     print("Check against the search tables (largest table per level)")
@@ -200,7 +200,6 @@ def label(models, labelled_csv):
         else:
             m["pareto"] = "not covered"
             uncovered[level] = max(uncovered.get(level, 0), blocks)
-    OUTPUT.mkdir(exist_ok=True)
     with open(labelled_csv, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=LABEL_COLUMNS, extrasaction="ignore")
         w.writeheader()
@@ -221,9 +220,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("mode", choices=["amin", "amin-front", "loop-search", "search", "check-sim", "check-rules",
                                          "check-models", "label"])
-    parser.add_argument("--sessions",
-                        help="label, check-models (required): folder of session JSONs, with their models in "
-                             "<folder>/models/")
+    parser.add_argument("--sessions", default=str(HERE.parent / "data"),
+                        help="label, check-models: folder of session JSONs, with their models in <folder>/models/ "
+                             "(default: replication/data)")
     parser.add_argument("--levels-dir", default=str(ROOT / "blocky_momot" / "model" / "input"),
                         help="folder with the clean level files N.xmi (default: blocky_momot/model/input)")
     parser.add_argument("--level", type=int, action="append", help="level to compute (repeatable; default 5-10)")
@@ -234,33 +233,31 @@ def main():
                         help="label: run the searches that cover the not-covered models, then label again (10 blocks "
                              "take hours per level)")
     args = parser.parse_args()
-    if args.mode in ("label", "check-models") and not args.sessions:
-        parser.error(f"{args.mode} needs --sessions <folder>")
 
     levels = args.level or STUDY_LEVELS
     levels_dir = str(Path(args.levels_dir).resolve())
     if args.mode == "label":
-        models, labelled = read_models(args.sessions), output_csv(args.sessions, "labelled")
+        models, labelled = read_models(args.sessions), labels_csv(args.sessions)
         uncovered = label(models, labelled)
         if uncovered and args.extend:
             java, cp = find_tool("java"), classpath()
             for level, blocks in sorted(uncovered.items()):
                 cmd = [java, "-Xmx4g", "-cp", cp, "blocky_momot.GroundTruthEnumerator", "search", levels_dir,
-                       str(blocks), str(OUTPUT), str(level)]
+                       str(blocks), str(TABLES), str(level)]
                 if subprocess.run(cmd, cwd=ROOT).returncode != 0:
                     sys.exit(f"search failed for level {level}")
             uncovered = label(models, labelled)
         for level, blocks in sorted(uncovered.items()):
             print(f"Level {level}: models up to {blocks} blocks not covered; run: "
-                  f"python tools/ground-truth-analysis/run.py search --level {level} --max-blocks {blocks}")
+                  f"python ground_truth/run.py search --level {level} --max-blocks {blocks}")
         return
     java = find_tool("java")
     cp = classpath()
     if args.mode == "amin":
-        tool_args = ["amin", levels_dir, str(OUTPUT / "amin.csv")]
+        tool_args = ["amin", levels_dir, str(TABLES / "amin.csv")]
     elif args.mode == "amin-front":
         cmd = [java, "-Xmx4g", "-cp", cp, "blocky_momot.GroundTruthEnumerator", "amin-front", levels_dir,
-               str(OUTPUT / "amin_front.csv"), *map(str, levels)]
+               str(TABLES / "amin_front.csv"), *map(str, levels)]
         if subprocess.run(cmd, cwd=ROOT).returncode != 0:
             sys.exit("amin-front failed")
         sys.exit(0 if check_amin_front() else 1)
@@ -269,12 +266,12 @@ def main():
             parser.error("loop-search needs --max-actions")
         for level in levels:
             cmd = [java, "-Xmx8g", "-cp", cp, "blocky_momot.GroundTruthEnumerator", "loop-search", levels_dir, str(level),
-                   str(args.max_blocks), str(args.max_body), str(args.max_actions), str(OUTPUT)]
+                   str(args.max_blocks), str(args.max_body), str(args.max_actions), str(TABLES)]
             if subprocess.run(cmd, cwd=ROOT).returncode != 0:
                 sys.exit(f"loop-search failed for level {level}")
         return
     elif args.mode == "search":
-        tool_args = [args.mode, levels_dir, str(args.max_blocks), str(OUTPUT)]
+        tool_args = [args.mode, levels_dir, str(args.max_blocks), str(TABLES)]
     elif args.mode == "check-models":
         # the tool reads one models CSV, so the per-session files are combined in a temporary one
         with tempfile.TemporaryDirectory() as tmp:

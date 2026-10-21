@@ -1,7 +1,9 @@
 #
-# Exports two functions that read the data of the experiment, already cleaned:
+# Exports the functions that read the data of the experiment, already cleaned:
 # - read_sessions(): the session files, one row per session and level
 # - read_models(): the models files computed by compute_models(), one row per model
+# - read_labels(): the Pareto labels of the models computed by compute_labels(), one row per model
+# - add_labels(): adds these labels to the models
 #
 
 # Read every .json session file of `folder` and return one clean table
@@ -27,6 +29,29 @@ read_models <- function(folder = "data/models") {
 
     models <- bind_rows(lapply(files, read_csv, show_col_types = FALSE))
     clean(models)
+}
+
+# Read the Pareto label of every model, one row per model, with the columns of read_models()
+# plus `pareto`: "optimal" (no program beats it), "dominated" (a program beats it),
+# "not covered" (bigger than the search tables: unknown) or "no goal", and the program that
+# dominates it (`dominatedBy`, `dominatedBy_actions`, `dominatedBy_blocks`).
+read_labels <- function(file = "data/labels.csv") {
+    if (!file.exists(file)) {
+        stop("No labels in '", file, "': run compute_labels() first")
+    }
+
+    labels <- read_csv(file, show_col_types = FALSE)
+    clean(labels)
+}
+
+# Add the Pareto label of read_labels() to every model, matched by session and index.
+# Stops if the labels do not match the models (labels computed on other data).
+add_labels <- function(models, labels) {
+    models <- left_join(models, select(labels, session, index, pareto), by = c("session", "index"))
+    if (anyNA(models$pareto) || nrow(models) != nrow(labels)) {
+        stop("The labels do not match the models: delete data/labels.csv and run compute_labels() again")
+    }
+    models
 }
 
 # Read the "levels" of one session file: one row per level.

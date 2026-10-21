@@ -10,10 +10,13 @@ library(tidyr)
 library(ggplot2)
 
 source("compute_models.R")
+source("compute_labels.R")
 source("read.R")
 source("group.R")
 source("plot.R")
 source("table.R")
+source("pareto.R")
+source("exploration.R")
 
 # Folder of the game repository (with blocky_game, blocky_momot and blocky_model),
 # only needed to compute the models of new sessions with Java. Leave NA without it.
@@ -59,3 +62,34 @@ plot_distribution(sessions, "clem_searches", variants = "treatment")
 plot_distribution(sessions, "solutions_loaded", variants = "treatment")
 plot_distribution(sessions, "min_power_kW")
 plot_distribution(sessions, "min_memory_kB")
+
+# Label every model as non-dominated or not with the ground truth (Python),
+# in data/labels.csv (only if the models are not labelled yet)
+compute_labels()
+labels <- read_labels()
+labelled <- add_labels(models, labels)
+
+# The goal-reaching program runs: how many are non-dominated, per level,
+# for all participants together and per variant
+goal <- filter(labelled, type == "program_run", status == "WON")
+
+pareto_all <- count_pareto_all(goal)
+print(pareto_all, n = Inf, width = Inf)
+write_csv(pareto_all, "tables/models_pareto_all.csv")
+write_csv(list_pareto_all(goal, labels), "tables/models_pareto_all_models.csv", na = "")
+plot_pareto_all(goal)
+
+pareto <- count_pareto(goal)
+print(pareto, n = Inf, width = Inf)
+write_csv(pareto, "tables/models_pareto.csv")
+plot_pareto(goal)
+
+# Treatment: the models loaded from the CLEM exploration, and whether the participants ran them
+loaded <- loaded_models(filter(labelled, variant == "treatment"))
+print(loaded, n = Inf, width = Inf)
+write_csv(loaded, "tables/exploration_models.csv")
+
+exploration <- count_exploration(filter(sessions, variant == "treatment"), loaded)
+print(exploration, n = Inf, width = Inf)
+write_csv(exploration, "tables/exploration_per_level.csv")
+plot_exploration(loaded)

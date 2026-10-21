@@ -1,32 +1,17 @@
 #
-# Treatment only: counts, for each level, how many models the participants loaded from the
-# CLEM exploration, whether they reach the goal and are non-dominated, and whether the
-# participants ran them. Also lists every loaded model.
-# Run it from this folder (tools/ground-truth-analysis/reports): Rscript exploration_models.R
+# Exports the functions that count and draw the models the treatment participants loaded from
+# the CLEM exploration: whether they reach the goal and are non-dominated, and whether the
+# participants ran them.
+# - loaded_models(): one row per loaded model
+# - count_exploration(): per level, the searches, loads and loaded models by outcome
+# - plot_exploration(): the loaded models per level, by label
 #
 # A loaded model is one program loaded by one participant on one level: loading the same
 # program again counts once (n_loads counts every load). A participant "ran it after" the load
 # if they ran the same program later on that level, and "built it before" if they had already
 # run it earlier. A loaded program that was edited before running counts as not run.
+# The labels and their colors (pareto_labels, pareto_colors) come from pareto.R.
 #
-
-library(readr)
-library(jsonlite)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-
-source("study.R") # the data folders, and where the replication package is
-source(file.path(replication_folder, "read.R"))
-
-# The labels, with readable names and colors
-pareto_labels <- c(
-    optimal       = "Non-dominated",
-    dominated     = "Dominated",
-    "not covered" = "Not covered (unknown)",
-    "no goal"     = "Does not reach the goal"
-)
-pareto_colors <- c("#1baf7a", "#d64545", "#a0a0a0", "#555555")
 
 # One row per loaded model, with its metrics, label, number of loads, and whether the
 # participant ran the same program before the first load or after it
@@ -108,18 +93,3 @@ plot_exploration <- function(loaded, levels = 5:10, file = "plots/exploration_mo
 
     ggsave(file, p, width = 6, height = 3.5, dpi = 150, create.dir = TRUE)
 }
-
-study <- read_study()
-sessions <- filter(study$sessions, variant == "treatment")
-models <- filter(add_labels(study$models, read_labels()), variant == "treatment")
-
-loaded <- loaded_models(models)
-print(loaded, n = Inf, width = Inf)
-
-counts <- count_exploration(sessions, loaded)
-print(counts, n = Inf, width = Inf)
-
-dir.create("tables", showWarnings = FALSE)
-write_csv(counts, "tables/exploration_per_level.csv")
-write_csv(loaded, "tables/exploration_models.csv")
-plot_exploration(loaded)
