@@ -21,6 +21,7 @@ source("exploration.R")
 source("questionnaire.R")
 source("pareto.R")
 source("exploration.R")
+source("performance.R")
 
 # Folder of the game repository (with blocky_game, blocky_momot and blocky_model),
 # only needed to compute the models of new sessions with Java. Leave NA without it.
@@ -51,7 +52,7 @@ write_latex_table(overall) # tables/overall.tex, for the paper
 # Mean and median of every metric, per level and variant
 per_level <- aggregate(sessions)
 print(per_level, n = Inf, width = Inf)
-# write_csv(per_level, "experiment_data_per_level.csv")
+write_csv(per_level, "tables/per_level.csv") # e.g. the median time on level 10, per variant
 
 # Plots for the paper: every metric per level
 plot_per_level(per_level)
@@ -66,6 +67,21 @@ plot_distribution(sessions, "clem_searches", variants = "treatment")
 plot_distribution(sessions, "solutions_loaded", variants = "treatment")
 plot_distribution(sessions, "min_power_kW")
 plot_distribution(sessions, "min_memory_kB")
+
+# Control vs treatment, one value per participant (mean over their levels):
+# median per variant, exact Wilcoxon test and Cliff's delta
+participants <- per_participant(sessions)
+print(participants, width = Inf)
+write_csv(participants, "tables/performance_per_participant.csv")
+
+performance <- performance_test(participants)
+print(performance, width = Inf)
+write_csv(performance, "tables/performance_test.csv")
+
+# Treatment: who used the CLEM exploration on levels 5 to 9, and on level 10
+exploration_participants <- count_exploration_participants(filter(sessions, variant == "treatment"))
+print(exploration_participants, width = Inf)
+write_csv(exploration_participants, "tables/exploration_per_participant.csv")
 
 
 answers <- read_questionnaire()

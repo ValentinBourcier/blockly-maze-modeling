@@ -4,6 +4,7 @@
 # participants ran them.
 # - loaded_models(): one row per loaded model
 # - count_exploration(): per level, the searches, loads and loaded models by outcome
+# - count_exploration_participants(): per participant, the searches and loads before level 10 and on it
 # - plot_exploration(): the loaded models per level, by label
 #
 # A loaded model is one program loaded by one participant on one level: loading the same
@@ -69,6 +70,16 @@ count_exploration <- function(sessions, loaded) {
         stop("The loads counted in the session files differ from the loaded models")
     }
     select(counts, -n_loads_logged)
+}
+
+# One row per treatment participant: their CLEM searches and loads on levels 5 to 9,
+# and on level 10. Tells whether the same participants explored on several levels.
+count_exploration_participants <- function(sessions) {
+    sessions <- mutate(sessions, levels = if_else(level == 10, "level_10", "levels_5_9"))
+    grouped <- group_by(sessions, user, levels)
+    counts <- summarise(grouped, searches = sum(clem_searches), loads = sum(solutions_loaded), .groups = "drop")
+    counts <- pivot_wider(counts, names_from = levels, values_from = c(searches, loads), names_glue = "{.value}_{levels}")
+    select(counts, user, searches_levels_5_9, searches_level_10, loads_levels_5_9, loads_level_10)
 }
 
 # Stacked bars of the loaded models per level, colored by label, and save it to `file`.

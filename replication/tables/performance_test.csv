@@ -1,0 +1,5 @@
+metric,n_control,n_treatment,control_median,treatment_median,wilcoxon_p,cliffs_delta
+level_runs,5,5,4.167,3.167,0.071,-0.72
+level_elapsed_min,5,5,6.059,4.958,0.008,-1
+min_power_kW,5,5,27.833,28,0.841,0.12
+min_memory_kB,5,5,7.167,6.833,0.54,-0.28
