@@ -14,6 +14,7 @@ source("read.R")
 source("group.R")
 source("plot.R")
 source("table.R")
+source("questionnaire.R")
 
 # Folder of the game repository (with blocky_game, blocky_momot and blocky_model),
 # only needed to compute the models of new sessions with Java. Leave NA without it.
@@ -59,3 +60,18 @@ plot_distribution(sessions, "clem_searches", variants = "treatment")
 plot_distribution(sessions, "solutions_loaded", variants = "treatment")
 plot_distribution(sessions, "min_power_kW")
 plot_distribution(sessions, "min_memory_kB")
+
+
+answers <- read_questionnaire()
+
+sus <- sus_scores(answers)
+print(sus, n = Inf)
+write_csv(sus, "tables/sus_scores.csv")
+
+sus_stats <- sus_summary(sus)
+print(sus_stats, width = Inf)
+write_csv(sus_stats, "tables/sus_summary.csv")
+
+sus_comparison <- sus_test(sus)
+print(sus_comparison, width = Inf)
+write_csv(sus_comparison, "tables/sus_test.csv")
